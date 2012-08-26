@@ -1,0 +1,8 @@
+ChangeLog - SimpleKDL
+------------------------
+http://code.google.com/p/simple-kdl/
+
+vx.xx status, mm/dd/yyyy
+
+v0.xx , in planning:
+		- 
