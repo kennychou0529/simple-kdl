@@ -23,82 +23,62 @@
  
 package SimpleKDL;
 
-import processing.core.*;
 import java.lang.reflect.Method;
+import processing.core.*;
+
   
 
 public class SimpleKDLContext
 {
-	static 
-        {   // load the nativ shared lib
-            String sysStr = System.getProperty("os.name").toLowerCase();
-            String libName = "SimpleKDL";
-            String archStr = System.getProperty("os.arch").toLowerCase();
+    static
+    {   // load the nativ shared lib
+        String sysStr = System.getProperty("os.name").toLowerCase();
+        String libName = "SimpleKDL";
+        String archStr = System.getProperty("os.arch").toLowerCase();
 
-            // check which system + architecture
-            if(sysStr.indexOf("win") >= 0)
-            {   // windows
-                if(archStr.indexOf("86") >= 0)
-                    // 32bit
-                    libName += "32";
-                else if(archStr.indexOf("64") >= 0)
-                    libName += "64";
-             }
-            else if(sysStr.indexOf("nix") >= 0 || sysStr.indexOf("linux") >=  0 )
-            {   // unix
-                if(archStr.indexOf("86") >= 0)
-                    // 32bit
-                    libName += "32";
-                else if(archStr.indexOf("64") >= 0)
-                {
-                    System.out.println("----");
-                    libName += "64";
-                }
-            }
-            else if(sysStr.indexOf("mac") >= 0)
-            {     // mac
-            }
-
-            try{
-              //System.out.println("-- " + System.getProperty("user.dir"));
-              System.loadLibrary(libName);
-            }
-            catch(UnsatisfiedLinkError e)
+        // check which system + architecture
+        if(sysStr.indexOf("win") >= 0)
+        {   // windows
+            if(archStr.indexOf("86") >= 0)
+                // 32bit
+                libName += "32";
+            else if(archStr.indexOf("64") >= 0)
+                libName += "64";
+         }
+        else if(sysStr.indexOf("nix") >= 0 || sysStr.indexOf("linux") >=  0 )
+        {   // unix
+            if(archStr.indexOf("86") >= 0)
+                // 32bit
+                libName += "32";
+            else if(archStr.indexOf("64") >= 0)
             {
-              System.out.println("Can't load SimpleKDL library (" +  libName  + ") : " + e);
+                System.out.println("----");
+                libName += "64";
             }
+        }
+        else if(sysStr.indexOf("mac") >= 0)
+        {     // mac
+        }
 
-	}
+        try{
+          //System.out.println("-- " + System.getProperty("user.dir"));
+          System.loadLibrary(libName);
+        }
+        catch(UnsatisfiedLinkError e)
+        {
+          System.out.println("Can't load SimpleKDL library (" +  libName  + ") : " + e);
+        }
 
-    public static void start()
-	{
+    }
 
-	}
+    public static void init(PApplet parent)
+    {
+        System.out.println("SimpleKDL");
 
+        Utils utils = new Utils();
+        utils.init(parent);
 
-// convert the frame into a processing matrix
-public static PMatrix3D getMatrix(SimpleKDL.Frame F)
-{
-  float[] tf=new float[16];
-  int i;
-  int j;
-  for (i=0;i<3;i++)
-  {
-    for (j=0;j<3;j++)
-      tf[i+j*4]= (float) F.getM().get(i, j);
-
-    tf[i+3*4] = (float) F.getP().get(i);
-  }
-  for (j=0;j<3;j++)
-    tf[3+j*4] = 0.0f;
-
-  tf[15] = 1;
-
-  PMatrix3D mat = new PMatrix3D();
-  mat.set(tf);
-  mat.transpose();
-
-  return mat;
-}
+        Utils.setInst(utils);
+    }
 
 }
