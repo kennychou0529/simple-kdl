@@ -1,5 +1,5 @@
 /* --------------------------------------------------------------------------
- * SimpleKDL Kinematic Solver
+ * SimpleKDL Kinematic Solver Example
  * --------------------------------------------------------------------------
  * Processing Wrapper for the Orocos KDL library
  * http://code.google.com/p/simple-kdl
