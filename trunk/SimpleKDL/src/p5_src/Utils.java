@@ -24,18 +24,9 @@
 package SimpleKDL;
 
 import processing.core.*;
-import processing.opengl.*;
-import javax.media.opengl.*;
-import javax.media.opengl.glu.*;
 
 public class Utils
 {
-    // opengl
-    protected GLUquadric       _quadric;
-    protected GL               _gl;
-    protected GLU              _glu;
-    protected PGraphicsOpenGL  _gOpengl = null;
-
     protected PApplet           _parent;
 
     protected PVector[]         _sphereVertex;
@@ -49,16 +40,6 @@ public class Utils
     public void init(PApplet parent)
     {
         _parent = parent;
-
-        _gOpengl = (PGraphicsOpenGL)parent.g;
-        _gl  = _gOpengl.gl;
-        _glu = _gOpengl.glu;
-
-        /*
-        _quadric = _glu.gluNewQuadric();
-        _glu.gluQuadricDrawStyle(_quadric, GLU.GLU_FILL);
-        _glu.gluQuadricNormals(_quadric, GLU.GLU_SMOOTH);
-        */
 
         // precalc cylinder
         _sphereVertex = new PVector[_sphereRes];
@@ -75,135 +56,7 @@ public class Utils
     PApplet parent() { return _parent; }
     PGraphics graphics() { return _parent.g; }
 
-    ///////////////////////////////////////////////////////////////////////////
-    // helper functions
-    public void getHitRay(int pick2dX,int pick2dY,
-                   PVector r1,PVector r2)
-    {
-        r1.set(unProject(pick2dX, pick2dY, 0));
-        r2.set(unProject(pick2dX, pick2dY, 1));
-    }
 
-    public PVector unProject(float winX, float winY, float z)
-    {
-        if(_gOpengl == null)
-            return new PVector();
-
-        _gOpengl.beginGL();
-        int viewport[] = new int[4];
-        double[] proj=new double[16];
-        double[] model=new double[16];
-
-        _gl.glGetIntegerv(GL.GL_VIEWPORT, viewport, 0);
-        _gl.glGetDoublev(GL.GL_PROJECTION_MATRIX, proj, 0);
-        _gl.glGetDoublev(GL.GL_MODELVIEW_MATRIX, model, 0);
-
-        double[] mousePosArr=new double[4];
-
-        _glu.gluUnProject((double)winX, viewport[3]-(double)winY, (double)z,
-                          model, 0, proj, 0, viewport, 0, mousePosArr, 0);
-
-        _gOpengl.endGL();
-
-        return new PVector((float)mousePosArr[0], (float)mousePosArr[1], (float)mousePosArr[2]);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////
-    // static helper functions
-
-    // convert the frame into a processing matrix
-    public static PMatrix3D getMatrix(SimpleKDL.Frame F)
-    {
-      float[] tf=new float[16];
-      int i;
-      int j;
-      for (i=0;i<3;i++)
-      {
-        for (j=0;j<3;j++)
-          tf[i+j*4]= (float) F.getM().get(i, j);
-
-        tf[i+3*4] = (float) F.getP().get(i);
-      }
-      for (j=0;j<3;j++)
-        tf[3+j*4] = 0.0f;
-
-      tf[15] = 1;
-
-      PMatrix3D mat = new PMatrix3D();
-      mat.set(tf);
-      // left hand -> right hand
-      // https://forum.processing.org/topic/understanding-pmatrix3d#25080000001370087
-      mat.transpose();
-
-      return mat;
-    }
-
-    public static PMatrix3D getXFormMat(PVector origCenter,
-                                        PVector origX,
-                                        PVector origY,
-                                        PVector origZ,
-                                        PVector newCenter,
-                                        PVector newX,
-                                        PVector newY,
-                                        PVector newZ)
-    {
-        float[] tf=new float[16];
-
-        SimpleKDLMain.getXFormMat(origCenter.array(),
-                                  origX.array(),
-                                  origY.array(),
-                                  origZ.array(),
-                                  newCenter.array(),
-                                  newX.array(),
-                                  newY.array(),
-                                  newZ.array(),
-                                  tf);
-
-        PMatrix3D xform = new PMatrix3D();
-        xform.set(tf);
-
-        return xform;
-    }
-
-
-    public static Frame getFrame(PVector origCenter,
-                                 PVector origX,
-                                 PVector origY,
-                                 PVector origZ,
-                                 PVector newCenter,
-                                 PVector newX,
-                                 PVector newY,
-                                 PVector newZ)
-    {
-        float[] tf=new float[16];
-
-        SimpleKDLMain.getXFormMat(origCenter.array(),
-                                  origX.array(),
-                                  origY.array(),
-                                  origZ.array(),
-                                  newCenter.array(),
-                                  newX.array(),
-                                  newY.array(),
-                                  newZ.array(),
-                                  tf);
-
-        Rotation rot = new Rotation(tf[0],tf[4],tf[8],
-                                    tf[1],tf[5],tf[9],
-                                    tf[2],tf[6],tf[10]);
-
-        return new Frame(rot,
-                         new Vector(tf[12],tf[13],tf[14]));
-    }
-
-    public static PVector getPlaneNormal(PVector p1, PVector p2, PVector p3)
-    {
-        PVector u = PVector.sub(p2,p1);
-        PVector v = PVector.sub(p3,p1);
-
-        PVector ret = u.cross(v);
-        ret.normalize();
-        return ret;
-    }
     ///////////////////////////////////////////////////////////////////////////
     // drawing helpers
     public void drawCylinder(float radius,float h,int slices)
@@ -244,36 +97,30 @@ public class Utils
             _parent.g.vertex(vec.x, vec.y, vec.z + (h * .5f));
             _parent.g.vertex(vec.x, vec.y, vec.z - (h * .5f));
         _parent.g.endShape();
+    }
 
-        /*
-        gOpengl.beginGL();
-        gl.glPushAttrib(GL.GL_ALL_ATTRIB_BITS);
-        gl.glEnable(GL.GL_LIGHTING);
+    public static void drawCoordSys(PGraphics g,int len)
+    {
+        // x-axis
+        g.stroke(255, 0, 0);
+        g.line(0, 0, 0, len, 0, 0);
 
-        glu.gluCylinder(quadric, baseRadius, topRadius,h, slices, stacks);
+        // y-axis
+        g.stroke(0, 255, 0);
+        g.line(0, 0, 0, 0, len, 0);
 
-        gl.glPopAttrib();
-        gOpengl.endGL();
-        */
+        // z-axis
+        g.stroke(0, 0, 255);
+        g.line(0, 0, 0, 0, 0, len);
     }
 
     public void drawCoordSys(int len)
     {
-        // x-axis
-        _parent.g.stroke(255, 0, 0);
-        _parent.g.line(0, 0, 0, len, 0, 0);
-
-        // y-axis
-        _parent.g.stroke(0, 255, 0);
-        _parent.g.line(0, 0, 0, 0, len, 0);
-
-        // z-axis
-        _parent.g.stroke(0, 0, 255);
-        _parent.g.line(0, 0, 0, 0, 0, len);
+        drawCoordSys(_parent.g,len);
     }
 
-    public void drawPlane(PVector p1, PVector p2, PVector p3,
-                   int len, int repeat)
+    public static void drawPlane(PGraphics g,PVector p1, PVector p2, PVector p3,
+                                 int len, int repeat)
     {
         repeat--;
 
@@ -301,10 +148,10 @@ public class Utils
         // horz
         for (int i=0;i<repeat+1;i++)
         {
-            _parent.g.line(posU1.x, posU1.y, posU1.z,
-                           posU2.x, posU2.y, posU2.z);
-            _parent.g.line(posV1.x, posV1.y, posV1.z,
-                           posV2.x, posV2.y, posV2.z);
+            g.line(posU1.x, posU1.y, posU1.z,
+                   posU2.x, posU2.y, posU2.z);
+            g.line(posV1.x, posV1.y, posV1.z,
+                   posV2.x, posV2.y, posV2.z);
 
             posU1.add(stepsU);
             posU2.add(stepsU);
@@ -314,4 +161,19 @@ public class Utils
         }
     }
 
+    public void drawPlane(PVector p1, PVector p2, PVector p3,
+                          int len, int repeat)
+    {
+        drawPlane(_parent.g,p1,p2,p3,len,repeat);
+    }
+
+    public static PVector getPlaneNormal(PVector p1, PVector p2, PVector p3)
+    {
+        PVector u = PVector.sub(p2,p1);
+        PVector v = PVector.sub(p3,p1);
+
+        PVector ret = u.cross(v);
+        ret.normalize();
+        return ret;
+    }
 }

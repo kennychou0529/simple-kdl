@@ -45,6 +45,8 @@ PVector boxSize = new PVector(300,200,150);
 float   boxRotZ = -15;
 
 // define picking plane x-y
+PickHelpers pickHelpers = new PickHelpers();
+
 PVector pickPlaneP1 = new PVector(0, 0, 0);
 PVector pickPlaneP2 = new PVector(1, 0, 0);
 PVector pickPlaneP3 = new PVector(0, 1, 0);
@@ -114,8 +116,13 @@ void setup()
   minAngles[3] = radians(-120);
   maxAngles[3] = radians(120);
   
-  kinematicSolver = new SimpleKDL.KinematicSolver();
-  kinematicSolver.init(chain,minAngles,maxAngles);
+  kinematicSolver = new SimpleKDL.KinematicSolver(chain,minAngles,maxAngles);
+  // if you only want ik without joint limits
+  //kinematicSolver = new SimpleKDL.KinematicSolver(chain);
+    
+  ///////////////////////////////////////////////////////////
+  // setup for picking
+  pickHelpers.init(this);
 }
 
 void mousePressed()
@@ -164,15 +171,15 @@ void draw()
   
   //////////////////////////////////////////////
   // draw the chain
-  kinematicSolver.draw();
+  kinematicSolver.draw(g);
 
   //////////////////////////////////////////////
   // draw picking plane
   pushStyle();
   strokeWeight(1);
   stroke(150, 150, 150, 100);
-  Utils.inst().drawPlane(pickPlaneP1, pickPlaneP2, pickPlaneP3, 
-                         2000, 21);
+  Utils.drawPlane(g,pickPlaneP1, pickPlaneP2, pickPlaneP3, 
+                  2000, 21);
   popStyle();  
 
   //////////////////////////////////////////////
@@ -198,7 +205,7 @@ void draw()
   pushMatrix();
   applyMatrix(endPointMat);
   strokeWeight(5);  
-  Utils.inst().drawCoordSys(50);
+  Utils.drawCoordSys(g,50);
   strokeWeight(1);  
   popMatrix();
   
@@ -281,8 +288,8 @@ void pickScene()
   PVector r2 = new PVector();
   
   // get the current hit ray
-  Utils.inst().getHitRay(mouseX,mouseY,
-                         r1,r2);
+  pickHelpers.getHitRay(mouseX,mouseY,
+                        r1,r2);
                     
   PVector rDir = PVector.sub(r2,r1);
   PVector pick3d = new PVector();
@@ -339,17 +346,17 @@ void calcEndRotMat(PVector start,PVector end, PVector normalEnd)
   PVector u = v.cross(normalEnd);
 
   // the end frame should be aligned with the chain base
-  SimpleKDL.Frame testFrame = Utils.getFrame(// orig
-                                            new PVector(0,0,0),  // z
-                                            u,
-                                            v,
-                                            normalEnd,
-                                            // dest
-                                            new PVector(0,0,0),  // x
-                                            new PVector(1,0,0),  // x
-                                            new PVector(0,1,0),  // y
-                                            new PVector(0,0,1)  // z
-                                            );
+  SimpleKDL.Frame testFrame = SimpleKDL.KinematicSolver.getFrame(// orig
+                                                     new PVector(0,0,0),  // z
+                                                     u,
+                                                     v,
+                                                     normalEnd,
+                                                     // dest
+                                                     new PVector(0,0,0),  // x
+                                                     new PVector(1,0,0),  // x
+                                                     new PVector(0,1,0),  // y
+                                                     new PVector(0,0,1)  // z
+                                                     );
 
    SimpleKDL.Rotation rotFlip =  new SimpleKDL.Rotation(1,0,0,
                                                         0,1,0,
@@ -384,7 +391,7 @@ boolean setEndPos(PVector endPos,PVector endPosNormal)
                                                                             new SimpleKDL.Vector(endPointRotZ.x,endPointRotZ.y,endPointRotZ.z)),
                                                      new SimpleKDL.Vector(endPos.x, endPos.y, endPos.z));
   // calculate matrix for visualization                       
-  endPointMat = Utils.getMatrix(desiredFrame);
+  endPointMat = SimpleKDL.KinematicSolver.getMatrix(desiredFrame);
     
   // set the end position of the chain  
   boolean ret = kinematicSolver.solveIk(desiredFrame);  
