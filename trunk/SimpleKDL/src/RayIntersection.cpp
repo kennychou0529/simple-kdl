@@ -365,8 +365,8 @@ bool quadIntersection(const Eigen::Vector3f& p,
     return false;
 }
 
-
-int boxIntersection(const Eigen::Vector3f& p,
+int boxIntersection(const Eigen::Matrix4f& xform,
+                    const Eigen::Vector3f& p,
                     const Eigen::Vector3f& dir,
                     const Eigen::Vector3f& boxCenter,
                     float boxWidth,
@@ -389,14 +389,24 @@ int boxIntersection(const Eigen::Vector3f& p,
     Eigen::Vector3f p7(x2,-y2,z2);
     Eigen::Vector3f p8(-x2,-y2,z2);
 
-    p1 += boxCenter;
-    p2 += boxCenter;
-    p3 += boxCenter;
-    p4 += boxCenter;
-    p5 += boxCenter;
-    p6 += boxCenter;
-    p7 += boxCenter;
-    p8 += boxCenter;
+    /*
+    std::cout << "m:" << xform.matrix() << std::endl;
+    std::cout << "p1:" << p1.x() << "," << p1.y() << "," << p1.z() << std::endl;
+    */
+    Eigen::Affine3f mat(xform);
+
+    p1 = mat * (p1 + boxCenter);
+    p2 = mat * (p2 + boxCenter);
+    p3 = mat * (p3 + boxCenter);
+    p4 = mat * (p4 + boxCenter);
+    p5 = mat * (p5 + boxCenter);
+    p6 = mat * (p6 + boxCenter);
+    p7 = mat * (p7 + boxCenter);
+    p8 = mat * (p8 + boxCenter);
+
+    /*
+    std::cout << "p1_:" << p1.x() << "," << p1.y() << "," << p1.z() << std::endl;
+    */
 
     Eigen::Vector3f hit[2];
     Eigen::Vector3f hitNormal[2];
@@ -492,6 +502,74 @@ int boxIntersection(const Eigen::Vector3f& p,
     }
 
     return hitCount;
+}
+
+int boxIntersection(const Eigen::Vector3f& p,
+                    const Eigen::Vector3f& dir,
+                    const Eigen::Vector3f& boxCenter,
+                    float boxWidth,
+                    float boxHeigth,
+                    float boxDepth,
+                    Eigen::Vector3f* hit1,Eigen::Vector3f* hit2,
+                    Eigen::Vector3f* hit1Normal,Eigen::Vector3f* hit2Normal)
+{
+    return boxIntersection(Eigen::Matrix4f::Identity(),
+                           p,
+                           dir,
+                           boxCenter,
+                           boxWidth,
+                           boxHeigth,
+                           boxDepth,
+                           hit1,hit2,
+                           hit1Normal,hit2Normal);
+}
+
+int boxIntersection(float xform[],    // 4x4 matrix
+                    float p[],
+                    float dir[],
+                    float boxCenter[],
+                    float boxWidth,
+                    float boxHeigth,
+                    float boxDepth,
+                    float hit1[],float hit2[],
+                    float hit1Normal[],float hit2Normal[])
+{
+    // convert processing matrix into eigen matrix
+    Eigen::Matrix4f mat(xform);
+    mat.transposeInPlace();
+
+    Eigen::Vector3f hitRet1,hitRet2;
+    Eigen::Vector3f hitRet1Normal,hitRet2Normal;
+
+    int ret = boxIntersection(mat,
+                              Eigen::Vector3f(p),Eigen::Vector3f(dir),
+                              Eigen::Vector3f(boxCenter),
+                              boxWidth,boxHeigth,boxDepth,
+                              &hitRet1,&hitRet2,
+                              &hitRet1Normal,&hitRet2Normal);
+    if(ret > 0)
+    {
+        hit1[0] = hitRet1.x();
+        hit1[1] = hitRet1.y();
+        hit1[2] = hitRet1.z();
+
+        hit1Normal[0] = hitRet1Normal.x();
+        hit1Normal[1] = hitRet1Normal.y();
+        hit1Normal[2] = hitRet1Normal.z();
+
+        if(ret > 1)
+        {
+            hit2[0] = hitRet2.x();
+            hit2[1] = hitRet2.y();
+            hit2[2] = hitRet2.z();
+
+            hit2Normal[0] = hitRet2Normal.x();
+            hit2Normal[1] = hitRet2Normal.y();
+            hit2Normal[2] = hitRet2Normal.z();
+        }
+    }
+
+    return ret;
 }
 
 

@@ -71,6 +71,16 @@ int boxIntersection(float p[],
                     float hit1[],float hit2[],
                     float hit1Normal[],float hit2Normal[]);
 
+int boxIntersection(float xform[],    // 4x4 matrix
+                    float p[],
+                    float dir[],
+                    float boxCenter[],
+                    float boxWidth,
+                    float boxHeigth,
+                    float boxDepth,
+                    float hit1[],float hit2[],
+                    float hit1Normal[],float hit2Normal[]);
+
 void getXFormMat(float origCenter[],
                  float origX[],
                  float origY[],

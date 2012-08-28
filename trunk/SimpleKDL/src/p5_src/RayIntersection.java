@@ -169,5 +169,42 @@ public class RayIntersection
         return ret;
     }
 
+    public static int box(PMatrix3D xform,    // 4x4 matrix
+                                     PVector p,
+                                      PVector dir,
+                                      PVector boxCenter,
+                                      float boxWidth,
+                                      float boxHeigth,
+                                      float boxDepth,
+                                      PVector hit1,PVector hit2,
+                                      PVector hit1Normal,PVector hit2Normal)
+    {
+        float[] hit1Ret= new float[3];
+        float[] hit2Ret= new float[3];
 
+        float[] hit1NormalRet= new float[3];
+        float[] hit2NormalRet= new float[3];
+
+        float[] mat = new float[16];
+        xform.get(mat);
+
+        int ret = SimpleKDLMain.boxIntersection(mat,
+                                                p.array(), dir.array(),
+                                                boxCenter.array(), boxWidth,boxHeigth,boxDepth,
+                                                hit1Ret, hit2Ret,
+                                                hit1NormalRet, hit2NormalRet);
+
+        if(ret > 0)
+        {
+            hit1.set(hit1Ret);
+            hit1Normal.set(hit1NormalRet);
+
+            if(ret > 1)
+            {
+              hit2.set(hit2Ret);
+              hit2Normal.set(hit2NormalRet);
+            }
+        }
+        return ret;
+    }
 }
