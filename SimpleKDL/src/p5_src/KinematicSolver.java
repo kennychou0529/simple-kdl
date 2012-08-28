@@ -23,7 +23,6 @@
  
 package SimpleKDL;
 
-import java.lang.reflect.Method;
 import processing.core.*;
 
 
@@ -57,20 +56,9 @@ public class KinematicSolver
     protected JntArray          _jointAnglesInit;
     protected JntArray          _jointAnglesOut;
 
-
-    public KinematicSolver()
-    {
-    }
-
-    public void setPrecision(int maxItr,double eps)
-    {
-        _maxItr = maxItr;
-        _eps = eps;
-    }
-
     public int getIkType() { return _ikType; }
 
-    public void init(SimpleKDL.Chain chain,float[] jointDegAnglesMin,float[] jointDegAnglesMax)
+    public KinematicSolver(Chain chain,float[] jointDegAnglesMin,float[] jointDegAnglesMax)
     {
         _chain = chain;
         _ikType = IK_TYPE_JL;
@@ -112,7 +100,7 @@ public class KinematicSolver
                                            _maxItr, _eps);
     }
 
-    public void init(SimpleKDL.Chain chain)
+    public KinematicSolver(Chain chain)
     {
         _chain = chain;
         _ikType = IK_TYPE_DEFAULT;
@@ -233,75 +221,75 @@ public class KinematicSolver
     ///////////////////////////////////////////////////////////////////////////
     // viz part
 
-    public void draw()
+    public void draw(PGraphics g)
     {
         if(_chain != null)
         {   // draw chain
             switch(_ikType)
             {
             case IK_TYPE_JL:
-                drawChain(Utils.inst(),_chain, _jointAnglesOut, _jointAnglesMin, _jointAnglesMax);
+                drawChain(g,_chain, _jointAnglesOut, _jointAnglesMin, _jointAnglesMax);
                 break;
             case IK_TYPE_DEFAULT:
             default:
-                drawChain(Utils.inst(),_chain, _jointAnglesOut, null, null);
+                drawChain(g,_chain, _jointAnglesOut, null, null);
                 break;
             }
         }
     }
 
-    public static void drawChain(Utils utils,SimpleKDL.Chain chain, SimpleKDL.JntArray angles, SimpleKDL.JntArray anglesMin, SimpleKDL.JntArray anglesMax)
+    public static void drawChain(PGraphics g,SimpleKDL.Chain chain, SimpleKDL.JntArray angles, SimpleKDL.JntArray anglesMin, SimpleKDL.JntArray anglesMax)
     {
         Segment segment;
 
-        utils.graphics().pushMatrix();
+        g.pushMatrix();
         if(anglesMin != null && anglesMax != null)
         {
             for (int i=0;i < chain.getNrOfSegments();i++)
-                drawSegment(utils,chain.getSegment(i), angles.get(i), anglesMin.get(i), anglesMax.get(i));
+                drawSegment(g,chain.getSegment(i), angles.get(i), anglesMin.get(i), anglesMax.get(i));
         }
         else
         {
             for (int i=0;i < chain.getNrOfSegments();i++)
-                drawSegment(utils,chain.getSegment(i), angles.get(i), 0.0, 0.0);
+                drawSegment(g,chain.getSegment(i), angles.get(i), 0.0, 0.0);
         }
-        utils.graphics().popMatrix();
+        g.popMatrix();
     }
 
-    public static void drawSegment(Utils utils,SimpleKDL.Segment segment, double angle, double angleMin, double angleMax)
+    public static void drawSegment(PGraphics g,SimpleKDL.Segment segment, double angle, double angleMin, double angleMax)
     {
         PVector vec = new PVector();
 
         Joint   curJoint = segment.getJoint();
 
-        PMatrix3D matEnd = Utils.getMatrix(segment.getFrameToTip());
-        PMatrix3D matRot = Utils.getMatrix(curJoint.pose(angle));
+        PMatrix3D matEnd = getMatrix(segment.getFrameToTip());
+        PMatrix3D matRot = getMatrix(curJoint.pose(angle));
 
         // draw the axis
-        utils.drawCoordSys(70);
+        Utils.drawCoordSys(g,70);
 
         // draw angle
-        utils.graphics().pushMatrix();
+        g.pushMatrix();
             Joint.JointType type = curJoint.getType();
             if(type == Joint.JointType.RotX)
             {
-                utils.graphics().rotate(PApplet.radians(90),0.0f,1.0f,0.0f);
-                drawJointAngle(utils,curJoint,angle);
+                g.rotate(PApplet.radians(90),0.0f,1.0f,0.0f);
+                drawJointAngle(g,curJoint,angle);
             }
             else if(type == Joint.JointType.RotY)
             {
-                utils.graphics().rotate(PApplet.radians(90),1.0f,0.0f,0.0f);
-                drawJointAngle(utils,curJoint,angle);
+                g.rotate(PApplet.radians(90),1.0f,0.0f,0.0f);
+                drawJointAngle(g,curJoint,angle);
             }
             else if(type == Joint.JointType.RotZ)
             {
-                drawJointAngle(utils,curJoint,angle);
+                drawJointAngle(g,curJoint,angle);
             }
             else if(type == Joint.JointType.RotAxis)
             {
                 Vector axis = curJoint.JointAxis();
                 //rotate((float)angle,(float)axis.x(),(float)axis.y(),(float)axis.z());
-                drawJointAngle(utils,curJoint,angle);
+                drawJointAngle(g,curJoint,angle);
             }
             else if(type == Joint.JointType.TransX)
             {
@@ -315,42 +303,42 @@ public class KinematicSolver
             else if(type == Joint.JointType.TransAxis)
             {
             }
-        utils.graphics().popMatrix();
+        g.popMatrix();
 
         // set the rotation
-        utils.graphics().applyMatrix(matRot);
+        g.applyMatrix(matRot);
 
         // draw limb
-        utils.graphics().pushStyle();
+        g.pushStyle();
         matEnd.mult(new PVector(0, 0, 0), vec);
 
-        utils.graphics().stroke(200, 200, 100);
-        utils.graphics().strokeWeight(2);
-        utils.graphics().line(0, 0, 0,
+        g.stroke(200, 200, 100);
+        g.strokeWeight(2);
+        g.line(0, 0, 0,
                               vec.x, vec.y, vec.z);
-        utils.graphics().popStyle();
+        g.popStyle();
 
         // draw the joint
-        utils.graphics().pushMatrix();
+        g.pushMatrix();
             if(type == Joint.JointType.RotX)
             {
-              utils.graphics().rotate(PApplet.radians(90),0.0f,1.0f,0.0f);
-              drawJoint(utils,curJoint);
+              g.rotate(PApplet.radians(90),0.0f,1.0f,0.0f);
+              drawJoint(g,curJoint);
             }
             else if(type == Joint.JointType.RotY)
             {
-              utils.graphics().rotate(PApplet.radians(90),1.0f,0.0f,0.0f);
-              drawJoint(utils,curJoint);
+              g.rotate(PApplet.radians(90),1.0f,0.0f,0.0f);
+              drawJoint(g,curJoint);
             }
             else if(type == Joint.JointType.RotZ)
             {
-              drawJoint(utils,curJoint);
+              drawJoint(g,curJoint);
             }
             else if(type == Joint.JointType.RotAxis)
             {
               Vector axis = curJoint.JointAxis();
               //rotate((float)angle,(float)axis.x(),(float)axis.y(),(float)axis.z());
-              drawJoint(utils,curJoint);
+              drawJoint(g,curJoint);
             }
             else if(type == Joint.JointType.TransX)
             {
@@ -364,40 +352,127 @@ public class KinematicSolver
             else if(type == Joint.JointType.TransAxis)
             {
             }
-        utils.graphics().popMatrix();
+        g.popMatrix();
 
-        utils.graphics().applyMatrix(matEnd);
+        g.applyMatrix(matEnd);
     }
 
-    public static void drawJoint(Utils utils,SimpleKDL.Joint joint)
+    public static void drawJoint(PGraphics g,SimpleKDL.Joint joint)
     {
         float h=40;
         float r=10;
 
-        utils.graphics().pushMatrix();
-        utils.graphics().pushStyle();
-        utils.graphics().fill(255);
-        utils.graphics().noStroke();
-        utils.drawCylinder(r,h,10);
-        utils.graphics().popStyle();
-        utils.graphics().popMatrix();
+        g.pushMatrix();
+        g.pushStyle();
+        g.fill(255);
+        g.noStroke();
+        Utils.inst().drawCylinder(r,h,10);
+        g.popStyle();
+        g.popMatrix();
     }
 
-    public static void drawJointAngle(Utils utils,SimpleKDL.Joint joint,double angle)
+    public static void drawJointAngle(PGraphics g,SimpleKDL.Joint joint,double angle)
     {
         float angleStart;
         float angleEnd;
 
         //angle += PI/2;
-        utils.graphics().pushStyle();
-        utils.graphics().fill(255,255,0,200);
-        utils.graphics().stroke(255,255,255,200);
-        utils.graphics().strokeWeight(1);
+        g.pushStyle();
+        g.fill(255,255,0,200);
+        g.stroke(255,255,255,200);
+        g.strokeWeight(1);
         if(angle > 0)
-          utils.graphics().arc(0.0f, 0.0f, 100.0f, 100.0f, 0.0f,(float)angle);
+          g.arc(0.0f, 0.0f, 100.0f, 100.0f, 0.0f,(float)angle);
         else
-          utils.graphics().arc(0.0f, 0.0f, 100.0f, 100.0f, (float)angle, 0.0f);
-        utils.graphics().popStyle();
+          g.arc(0.0f, 0.0f, 100.0f, 100.0f, (float)angle, 0.0f);
+        g.popStyle();
+    }
+
+    // convert the frame into a processing matrix
+    public static PMatrix3D getMatrix(SimpleKDL.Frame F)
+    {
+      float[] tf=new float[16];
+      int i;
+      int j;
+      for (i=0;i<3;i++)
+      {
+        for (j=0;j<3;j++)
+          tf[i+j*4]= (float) F.getM().get(i, j);
+
+        tf[i+3*4] = (float) F.getP().get(i);
+      }
+      for (j=0;j<3;j++)
+        tf[3+j*4] = 0.0f;
+
+      tf[15] = 1;
+
+      PMatrix3D mat = new PMatrix3D();
+      mat.set(tf);
+      // left hand -> right hand
+      // https://forum.processing.org/topic/understanding-pmatrix3d#25080000001370087
+      mat.transpose();
+
+      return mat;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // static helpers
+
+    public static PMatrix3D getXFormMat(PVector origCenter,
+                                        PVector origX,
+                                        PVector origY,
+                                        PVector origZ,
+                                        PVector newCenter,
+                                        PVector newX,
+                                        PVector newY,
+                                        PVector newZ)
+    {
+        float[] tf=new float[16];
+
+        SimpleKDLMain.getXFormMat(origCenter.array(),
+                                  origX.array(),
+                                  origY.array(),
+                                  origZ.array(),
+                                  newCenter.array(),
+                                  newX.array(),
+                                  newY.array(),
+                                  newZ.array(),
+                                  tf);
+
+        PMatrix3D xform = new PMatrix3D();
+        xform.set(tf);
+
+        return xform;
+    }
+
+
+    public static Frame getFrame(PVector origCenter,
+                                 PVector origX,
+                                 PVector origY,
+                                 PVector origZ,
+                                 PVector newCenter,
+                                 PVector newX,
+                                 PVector newY,
+                                 PVector newZ)
+    {
+        float[] tf=new float[16];
+
+        SimpleKDLMain.getXFormMat(origCenter.array(),
+                                  origX.array(),
+                                  origY.array(),
+                                  origZ.array(),
+                                  newCenter.array(),
+                                  newX.array(),
+                                  newY.array(),
+                                  newZ.array(),
+                                  tf);
+
+        Rotation rot = new Rotation(tf[0],tf[4],tf[8],
+                                    tf[1],tf[5],tf[9],
+                                    tf[2],tf[6],tf[10]);
+
+        return new Frame(rot,
+                         new Vector(tf[12],tf[13],tf[14]));
     }
 
 

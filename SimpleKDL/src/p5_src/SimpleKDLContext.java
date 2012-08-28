@@ -26,10 +26,11 @@ package SimpleKDL;
 import java.lang.reflect.Method;
 import processing.core.*;
 
-  
 
 public class SimpleKDLContext
 {
+    final static int SIMPLEOPENNI_VERSION = 10;  // 0.1
+
     static
     {   // load the nativ shared lib
         String sysStr = System.getProperty("os.name").toLowerCase();
@@ -51,10 +52,7 @@ public class SimpleKDLContext
                 // 32bit
                 libName += "32";
             else if(archStr.indexOf("64") >= 0)
-            {
-                System.out.println("----");
                 libName += "64";
-            }
         }
         else if(sysStr.indexOf("mac") >= 0)
         {     // mac
@@ -73,7 +71,7 @@ public class SimpleKDLContext
 
     public static void init(PApplet parent)
     {
-        System.out.println("SimpleKDL");
+        parent.println("SimpleKDL Version " + (SIMPLEOPENNI_VERSION / 100) + "." + (SIMPLEOPENNI_VERSION % 100));
 
         Utils utils = new Utils();
         utils.init(parent);
