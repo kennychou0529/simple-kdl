@@ -56,6 +56,14 @@ public class KinematicSolver
     protected JntArray          _jointAnglesInit;
     protected JntArray          _jointAnglesOut;
 
+    protected static float      _scale = 1.0f;
+
+    public static void setScale(float scale)
+    {
+        _scale = scale;
+    }
+    public static float scale() { return _scale; }
+
     public int getIkType() { return _ikType; }
 
     public KinematicSolver(Chain chain,float[] jointDegAnglesMin,float[] jointDegAnglesMax)
@@ -238,6 +246,11 @@ public class KinematicSolver
         }
     }
 
+    public static void drawChain(PGraphics g,SimpleKDL.Chain chain, SimpleKDL.JntArray angles)
+    {
+        drawChain(g,chain,angles,null,null);
+    }
+
     public static void drawChain(PGraphics g,SimpleKDL.Chain chain, SimpleKDL.JntArray angles, SimpleKDL.JntArray anglesMin, SimpleKDL.JntArray anglesMax)
     {
         Segment segment;
@@ -266,7 +279,7 @@ public class KinematicSolver
         PMatrix3D matRot = getMatrix(curJoint.pose(angle));
 
         // draw the axis
-        Utils.drawCoordSys(g,70);
+        Utils.drawCoordSys(g,70 * _scale);
 
         // draw angle
         g.pushMatrix();
@@ -366,7 +379,7 @@ public class KinematicSolver
         g.pushStyle();
         g.fill(255);
         g.noStroke();
-        Utils.inst().drawCylinder(r,h,10);
+        Utils.inst().drawCylinder(r * _scale,h * _scale,10);
         g.popStyle();
         g.popMatrix();
     }
@@ -382,9 +395,9 @@ public class KinematicSolver
         g.stroke(255,255,255,200);
         g.strokeWeight(1);
         if(angle > 0)
-          g.arc(0.0f, 0.0f, 100.0f, 100.0f, 0.0f,(float)angle);
+          g.arc(0.0f, 0.0f, 100.0f * _scale, 100.0f * _scale, 0.0f,(float)angle);
         else
-          g.arc(0.0f, 0.0f, 100.0f, 100.0f, (float)angle, 0.0f);
+          g.arc(0.0f, 0.0f, 100.0f * _scale, 100.0f * _scale, (float)angle, 0.0f);
         g.popStyle();
     }
 

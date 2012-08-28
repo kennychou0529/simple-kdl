@@ -118,31 +118,31 @@ ELSE()
 	ENDIF()
 ENDIF()
 
-IF(WIN32)
-        SET(P5_JAR_OPENGL "C:/Program Files (x86)/processing-1.2.1/modes/java/libraries/opengl/library/opengl.jar")
-ELSEIF(APPLE)
-        SET(P5_JAR_OPENGL "/Applications/Processing.app/Contents/Resources/Java/modes/java/libraries/opengl/library/opengl.jar")
-ELSE()
-        # unix/linux
-        # SET(P5_JAR_OPENGL "/?")
-        IF(NOT DEFINED P5_JAR_OPENGL)
-                MESSAGE("Set P5_JAR_OPENGL to the folder where Processing installed the opengl.jar file, for example:")
-                MESSAGE(FATAL_ERROR "> cmake -DP5_JAR=/usr/???/opengl.jar.zip ..")
-        ENDIF()
-ENDIF()
+#IF(WIN32)
+#        SET(P5_JAR_OPENGL "C:/Program Files (x86)/processing-1.2.1/modes/java/libraries/opengl/library/opengl.jar")
+#ELSEIF(APPLE)
+#        SET(P5_JAR_OPENGL "/Applications/Processing.app/Contents/Resources/Java/modes/java/libraries/opengl/library/opengl.jar")
+#ELSE()
+#        # unix/linux
+#        # SET(P5_JAR_OPENGL "/?")
+#        IF(NOT DEFINED P5_JAR_OPENGL)
+#                MESSAGE("Set P5_JAR_OPENGL to the folder where Processing installed the opengl.jar file, for example:")
+#                MESSAGE(FATAL_ERROR "> cmake -DP5_JAR=/usr/???/opengl.jar.zip ..")
+#        ENDIF()
+#ENDIF()
 
-IF(WIN32)
-        SET(P5_JAR_JOGL  "C:/Program Files (x86)/processing-1.2.1/modes/java/libraries/opengl/library/jogl.jar")
-ELSEIF(APPLE)
-        SET(P5_JAR_JOGL "/Applications/Processing.app/Contents/Resources/Java/modes/java/libraries/opengl/library/jogl.jar")
-ELSE()
-        # unix/linux
-        # SET(P5_JAR_JOGL "/?")
-        IF(NOT DEFINED P5_JAR_JOGL)
-                MESSAGE("Set P5_JAR_JOGL to the folder where Java Opengl installed the jogl.jar file, for example:")
-                MESSAGE(FATAL_ERROR "> cmake -DP5_JAR=/usr/???/jogl.jar.zip ..")
-        ENDIF()
-ENDIF()
+#IF(WIN32)
+#        SET(P5_JAR_JOGL  "C:/Program Files (x86)/processing-1.2.1/modes/java/libraries/opengl/library/jogl.jar")
+#ELSEIF(APPLE)
+#        SET(P5_JAR_JOGL "/Applications/Processing.app/Contents/Resources/Java/modes/java/libraries/opengl/library/jogl.jar")
+#ELSE()
+#        # unix/linux
+#        # SET(P5_JAR_JOGL "/?")
+#        IF(NOT DEFINED P5_JAR_JOGL)
+#                MESSAGE("Set P5_JAR_JOGL to the folder where Java Opengl installed the jogl.jar file, for example:")
+#                MESSAGE(FATAL_ERROR "> cmake -DP5_JAR=/usr/???/jogl.jar.zip ..")
+#        ENDIF()
+#ENDIF()
 
 # -----------------------------------------------------------------------------
 # eigen 3d template lib
@@ -210,8 +210,8 @@ set(P5_JAR_OPENGL ${P5_JAR_OPENGL})
 
 # get full paths, otherwise javac/javadoc has problems with multiple jar locations
 GET_FILENAME_COMPONENT(P5_JAR "${P5_JAR}" ABSOLUTE)
-GET_FILENAME_COMPONENT(P5_JAR_OPENGL "${P5_JAR_OPENGL}" ABSOLUTE)
-GET_FILENAME_COMPONENT(P5_JAR_JOGL "${P5_JAR_JOGL}" ABSOLUTE)
+#GET_FILENAME_COMPONENT(P5_JAR_OPENGL "${P5_JAR_OPENGL}" ABSOLUTE)
+#GET_FILENAME_COMPONENT(P5_JAR_JOGL "${P5_JAR_JOGL}" ABSOLUTE)
 
 ADD_CUSTOM_COMMAND(TARGET SimpleKDL
 				   POST_BUILD
@@ -223,13 +223,13 @@ ADD_CUSTOM_COMMAND(TARGET SimpleKDL
 				   # cmake copy doesn't support wildcards, otherwise it just copies the hidden folder of svn, etc.
 				   # doesn't works on windows backslash
 				   COMMAND cp "${P5_WRAPPER}*.java" "${CMAKE_SWIG_OUTDIR}"
-				   #COMMAND cmake -E copy ${P5_WRAPPER_FILE} ${CMAKE_SWIG_OUTDIR}
-                                   COMMAND ${JAVA_COMPILE2} -classpath \"${P5_JAR}:${P5_JAR_OPENGL}:${P5_JAR_JOGL}\" ${CMAKE_SWIG_OUTDIR}/*.java -d ./
-				   COMMAND cmake -E echo "-----------------------------"
+#                                   COMMAND ${JAVA_COMPILE2} -classpath \"${P5_JAR}:${P5_JAR_OPENGL}:${P5_JAR_JOGL}\" ${CMAKE_SWIG_OUTDIR}/*.java -d ./
+                                   COMMAND ${JAVA_COMPILE2} -classpath \"${P5_JAR}\" ${CMAKE_SWIG_OUTDIR}/*.java -d ./
+                                   COMMAND cmake -E echo "-----------------------------"
 				   COMMAND cmake -E echo "Creating jar file..."
 				   COMMAND ${JAVA_ARCHIVE2} cvf SimpleKDL.jar SimpleKDL
                                    COMMAND cmake -E echo "-----------------------------"
 				   COMMAND cmake -E echo "Creating doc files..."
 				   COMMAND cmake -E make_directory ./doc
-				   #COMMAND ${JAVA_DOC} -quiet -author -public -nodeprecated -nohelp -d ./doc  -version ${P5_WRAPPER}/*.java -version ${CMAKE_SWIG_OUTDIR}/ContextWrapper.java)
-                                   COMMAND ${JAVA_DOC} -classpath \"${P5_JAR}:${P5_JAR_OPENGL}:${P5_JAR_JOGL}\" -quiet -author -public -nodeprecated -nohelp -d ./doc  -version ${CMAKE_SWIG_OUTDIR}/*.java)
+#                                   COMMAND ${JAVA_DOC} -classpath \"${P5_JAR}:${P5_JAR_OPENGL}:${P5_JAR_JOGL}\" -quiet -author -public -nodeprecated -nohelp -d ./doc  -version ${CMAKE_SWIG_OUTDIR}/*.java)
+                                   COMMAND ${JAVA_DOC} -classpath \"${P5_JAR}\" -quiet -author -public -nodeprecated -nohelp -d ./doc  -version ${CMAKE_SWIG_OUTDIR}/*.java)

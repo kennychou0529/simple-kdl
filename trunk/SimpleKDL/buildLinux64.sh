@@ -32,9 +32,9 @@ cmake -DCMAKE_BUILD_TYPE=Release \
 	  -DBOOST_ROOT=~/Documents/development/libs/boost/boost_1_46_1/ \
 	  -DBOOST_LIBRARYDIR=~/Documents/development/libs/boost/boost_1_46_1/stage/lib \
           -DP5_JAR=~/Documents/localApps/processing-1.5.1/lib/core.jar \
-          -DP5_JAR_OPENGL=~/Documents/localApps/processing-1.5.1/modes/java/libraries/opengl/library/opengl.jar \
-          -DP5_JAR_JOGL=~/Documents/localApps/processing-1.5.1/modes/java/libraries/opengl/library/jogl.jar \
           ..
+#          -DP5_JAR_OPENGL=~/Documents/localApps/processing-1.5.1/modes/java/libraries/opengl/library/opengl.jar \
+#          -DP5_JAR_JOGL=~/Documents/localApps/processing-1.5.1/modes/java/libraries/opengl/library/jogl.jar \
 
 echo "--- build ---"
 # build with 6 threads, verbose is optional, but otherwise you can't see the compiler directives
