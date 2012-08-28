@@ -683,15 +683,20 @@ public:
     %rename(get) operator()(unsigned int i,unsigned int j=0)const;
 
 %extend{
-    void set(unsigned int i,double value)
+void set(unsigned int i,double value)
+{
+    (*self)(i) = value;
+}
+
+    void set(unsigned int i,unsigned int j,double value)
     {
-        (*self)(i) = value;
+        (*self)(i,j) = value;
     }
-  
-	double get(unsigned int i,unsigned int j=0)const
-	{	
-	  return (*self)(i,j);
-	}
+
+    double get(unsigned int i,unsigned int j=0)const
+    {
+      return (*self)(i,j);
+    }
 }
 
 %extend{

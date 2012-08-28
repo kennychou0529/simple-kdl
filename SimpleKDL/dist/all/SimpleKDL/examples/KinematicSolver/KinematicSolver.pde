@@ -1,3 +1,17 @@
+/* --------------------------------------------------------------------------
+ * SimpleKDL Kinematic Solver
+ * --------------------------------------------------------------------------
+ * Processing Wrapper for the Orocos KDL library
+ * http://code.google.com/p/simple-kdl
+ * --------------------------------------------------------------------------
+ * prog:  Max Rheiner / Interaction Design / Zhdk / http://iad.zhdk.ch/
+ * date:  08/26/2012 (m/d/y)
+ * ----------------------------------------------------------------------------
+ *  This example shows how to use the KinematicSolver
+ *  - shift + left mouse button -> sets new position
+ * ----------------------------------------------------------------------------
+ */
+
 import processing.opengl.*;
 import javax.media.opengl.*;
 import javax.media.opengl.glu.*;
@@ -26,15 +40,19 @@ int mousePick = 0;
 PVector sphereCenter = new PVector(-500,400,150);
 float   sphereRadius = 150;
 
-PVector boxCenter = new PVector(500,200,100);
+PVector boxCenter = new PVector(400,300,75);
 PVector boxSize = new PVector(300,200,150);
+float   boxRotZ = -15;
 
-  // define picking plane x-y
+// define picking plane x-y
 PVector pickPlaneP1 = new PVector(0, 0, 0);
 PVector pickPlaneP2 = new PVector(1, 0, 0);
 PVector pickPlaneP3 = new PVector(0, 1, 0);
 boolean lastPick = false;
 
+// picking trail
+ArrayList  pickTrail = new ArrayList();
+int pickTrailMax = 200;
 
 void setup() 
 {
@@ -84,23 +102,20 @@ void setup()
   float[] minAngles = new float[(int)chain.getNrOfSegments()];
   float[] maxAngles = new float[(int)chain.getNrOfSegments()];
   
-  minAngles[0] = -990.0;
-  maxAngles[0] = 961.0;
+  minAngles[0] = radians(-990.0);
+  maxAngles[0] = radians(961.0);
 
-  minAngles[1] = -20;
-  maxAngles[1] = 90;
+  minAngles[1] = radians(-20);
+  maxAngles[1] = radians(90);
 
-  minAngles[2] = -20;
-  maxAngles[2] = 170;
+  minAngles[2] = radians(-20);
+  maxAngles[2] = radians(170);
 
-  minAngles[3] = -120;
-  maxAngles[3] = 120;
+  minAngles[3] = radians(-120);
+  maxAngles[3] = radians(120);
   
   kinematicSolver = new SimpleKDL.KinematicSolver();
-  
   kinematicSolver.init(chain,minAngles,maxAngles);
-  
-
 }
 
 void mousePressed()
@@ -109,7 +124,8 @@ void mousePressed()
   {
     noCursor();
     mousePick = 1;
-    // switch off the left dragging
+    
+    // switch off the left dragging of camera
     cam.setActive(false);
     
     pickScene();
@@ -130,7 +146,8 @@ void mouseReleased()
   {
     cursor();
     mousePick = 0;
-    // switch on the left dragging
+    
+    // switch on the left dragging of camera
     cam.setActive(true);
   }    
   
@@ -138,16 +155,18 @@ void mouseReleased()
 
 void draw() 
 {
-  // set lights
+  // set the lights
   ambientLight(100, 100,100);
   directionalLight(200, 172, 235,
                    1, -1, 0);
                    
   background(0);
-
-  // draw chain
+  
+  //////////////////////////////////////////////
+  // draw the chain
   kinematicSolver.draw();
 
+  //////////////////////////////////////////////
   // draw picking plane
   pushStyle();
   strokeWeight(1);
@@ -156,7 +175,25 @@ void draw()
                          2000, 21);
   popStyle();  
 
-  // draw pick pos
+  //////////////////////////////////////////////
+  // draw pickTrail
+  if(pickTrail.size() > 0)
+  {
+    PVector vec;
+    float q = 1.0f / pickTrail.size();
+    noFill();
+    beginShape();
+    for(int i=0;i < pickTrail.size();i++)
+    {
+      vec = (PVector) pickTrail.get(i);
+      stroke(19, 200, 170, 255 * q * i);
+      vertex(vec.x,vec.y,vec.z);
+    }
+    endShape();
+  }
+  
+  //////////////////////////////////////////////
+  // draw picking pos
   pushStyle();
   pushMatrix();
   applyMatrix(endPointMat);
@@ -186,12 +223,14 @@ void draw()
   sphere(15);
   popMatrix();
 
+  //////////////////////////////////////////////
   // draw pickScene  
   pushMatrix();
     fill(185, 255, 69,100);
     stroke(255);
     strokeWeight(1);
     translate(boxCenter.x,boxCenter.y,boxCenter.z);
+    rotateZ(radians(boxRotZ));
     box(boxSize.x,boxSize.y,boxSize.z);
   popMatrix();
    
@@ -203,80 +242,37 @@ void draw()
   popMatrix();
    
   popStyle();
+  
 }
 
 void keyPressed()
 {
-/*
   switch(key)
   {
   case ' ':
-    pickScene();
+    println("----------------------");
+    println("Test forward kinematic");
+  
+    // test last position
+    SimpleKDL.Frame frame = kinematicSolver.solveFk( kinematicSolver.getOutAngles() );
+    
+    println("Rotational Matrix of the final Frame: ");
+    println(frame.getM());
+    println("End-effector position: " + frame.getP());
     break;
-  case 'x':
-    // reset
-    q_out = new SimpleKDL.JntArray(jointAngles);
-    q_init = new SimpleKDL.JntArray(jointAngles);
-    break;
-  case '1':
-    // print the angels
-    println("q_init");
-    printAngles(q_init);
-    println("q_out");
-    printAngles(q_out);
-    break;
-  case 'f':
-    forwardKinematicTest();
-    break;
-  case 'i':
-    // change inverse kinematic type
-    ikType++;
-    if (ikType > 1)
-      ikType = 0;
-
-    switch(ikType)
-    {
-    case 0:
-      println("IkType normal");
-      break;
-    case 1:
-      println("IkType jointLimited");
-      break;
-    }
-    break;
+    
   case 'p':
-    // change the picking plane
-    planeType++;
-    if (planeType > 2)
-      planeType = 0;
+    float[] angles = kinematicSolver.getOutAngles();
 
-    switch(planeType)
-    {
-    case 0:
-      // define picking plane x-y
-      pickPlaneP1 = new PVector(0, 0, 0);
-      pickPlaneP2 = new PVector(1, 0, 0);
-      pickPlaneP3 = new PVector(0, 1, 0);
-      ;      
-      break;
-    case 1:
-      // define picking plane x-z
-      pickPlaneP1 = new PVector(0, 0, 0);
-      pickPlaneP2 = new PVector(1, 0, 0);
-      pickPlaneP3 = new PVector(0, 0, 1);
-      ;      
-      break;
-    case 2:
-      // define picking plane y-z
-      pickPlaneP1 = new PVector(0, 0, 0);
-      pickPlaneP2 = new PVector(0, 1, 0);
-      pickPlaneP3 = new PVector(0, 0, 1);
-      ;      
-      break;
-    }
+    println("--------------------------");
+    println("Current angles in degrees:");
+    for(int i=0; i < angles.length;i++)
+      println("joint" + i + " = " +  degrees(angles[i]));
+      
+    println("Current position:" + endPoint);
+          
     break;
   }
-  */
 }
 
 void pickScene()
@@ -284,7 +280,7 @@ void pickScene()
   PVector r1 = new PVector();
   PVector r2 = new PVector();
   
-  // get the hit ray
+  // get the current hit ray
   Utils.inst().getHitRay(mouseX,mouseY,
                          r1,r2);
                     
@@ -306,8 +302,17 @@ void pickScene()
   }                             
 
   // check if the hit was on the box
-  if(RayIntersection.box(r1, rDir, 
-                         boxCenter,boxSize.x,boxSize.y,boxSize.z,
+  PMatrix3D xform = new PMatrix3D();
+  xform.translate(boxCenter.x, boxCenter.y, boxCenter.z);
+
+  PMatrix3D rotZ = new PMatrix3D();
+  rotZ.rotateZ(radians(boxRotZ));
+  xform.apply(rotZ);
+
+  if(RayIntersection.box(xform,
+                         r1, rDir, 
+                         new PVector(0,0,0),
+                         boxSize.x,boxSize.y,boxSize.z,
                          pick3d,pick3d1,
                          pickNormal,pickNormal1) >= 1)
   {
@@ -332,23 +337,8 @@ void calcEndRotMat(PVector start,PVector end, PVector normalEnd)
   PVector v = PVector.sub(end,start);
   v.normalize();
   PVector u = v.cross(normalEnd);
-  
-  println("u" + u);
-  println("v" + v);
-  println("normalEnd" + normalEnd);
 
-/*  
- SimpleKDL.Frame testFrame = Utils.getFrame(// orig
-                                            new PVector(0,0,0),  // x
-                                            new PVector(1,0,0),  // x
-                                            new PVector(0,1,0),  // y
-                                            new PVector(0,0,1),  // z
-                                            // dest
-                                            new PVector(0,0,0),  // z
-                                            u,
-                                            v,
-                                            normalEnd);
-                                            */
+  // the end frame should be aligned with the chain base
   SimpleKDL.Frame testFrame = Utils.getFrame(// orig
                                             new PVector(0,0,0),  // z
                                             u,
@@ -378,18 +368,13 @@ void calcEndRotMat(PVector start,PVector end, PVector normalEnd)
  
 boolean setEndPos(PVector endPos,PVector endPosNormal)
 {
-  println("------------------------------");
-  println("Set new inverse kinematics position");
-  
   endPoint = endPos.get();
   
   // flip the direction of the normal, because the robot end segment looks down
  // endPointNormal = PVector.mult(endPosNormal,-1);
   endPointNormal = endPosNormal.get();
-  println("endPointNormal: "+ endPointNormal);
   
-  // calculate rotation frame according to chain base
-  //endPointRotX
+  // calculate rotation frame according to the chain base
   calcEndRotMat(new PVector(0,0,0),
                 endPoint,
                 endPointNormal);
@@ -398,13 +383,19 @@ boolean setEndPos(PVector endPos,PVector endPosNormal)
                                                                             new SimpleKDL.Vector(endPointRotY.x,endPointRotY.y,endPointRotY.z),
                                                                             new SimpleKDL.Vector(endPointRotZ.x,endPointRotZ.y,endPointRotZ.z)),
                                                      new SimpleKDL.Vector(endPos.x, endPos.y, endPos.z));
- 
-                          
+  // calculate matrix for visualization                       
   endPointMat = Utils.getMatrix(desiredFrame);
-  
-//  println("Desired Position: " + desiredFrame.getP());
-  
-  return kinematicSolver.solveIk(desiredFrame);  
+    
+  // set the end position of the chain  
+  boolean ret = kinematicSolver.solveIk(desiredFrame);  
+  if(ret)
+  {  // add to pickTrail
+    pickTrail.add(endPoint.get());
+    if(pickTrail.size() > pickTrailMax)
+      // remove the oldest
+      pickTrail.remove(0);
+  }
+  return ret;  
 }
 
 
