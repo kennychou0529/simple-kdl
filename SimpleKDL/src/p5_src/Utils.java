@@ -32,6 +32,7 @@ public class Utils
     protected PVector[]         _sphereVertex;
     protected int               _sphereRes = 10;
 
+
     protected static Utils _utils = null;
 
     public static Utils inst() { return _utils; }
@@ -53,8 +54,9 @@ public class Utils
         }
     }
 
-    PApplet parent() { return _parent; }
-    PGraphics graphics() { return _parent.g; }
+    public PApplet parent() { return _parent; }
+    public PGraphics graphics() { return _parent.g; }
+
 
 
     ///////////////////////////////////////////////////////////////////////////
@@ -99,7 +101,7 @@ public class Utils
         _parent.g.endShape();
     }
 
-    public static void drawCoordSys(PGraphics g,int len)
+    public static void drawCoordSys(PGraphics g,float len)
     {
         // x-axis
         g.stroke(255, 0, 0);
@@ -114,7 +116,7 @@ public class Utils
         g.line(0, 0, 0, 0, 0, len);
     }
 
-    public void drawCoordSys(int len)
+    public void drawCoordSys(float len)
     {
         drawCoordSys(_parent.g,len);
     }
