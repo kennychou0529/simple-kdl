@@ -31,17 +31,11 @@ echo "--- generate cmake ---"
 cmake -DCMAKE_BUILD_TYPE=Release \
 	  -DCMAKE_BUILD_ARCH=32 \
 	  -DMACH_ARCH=32 \
-	  -DOPEN_NI_INCLUDE=/usr/include/ni/ \
-	  -DXN_NITE_INCLUDE=/usr/include/nite/ \
-	  -DXN_NITE_LIB=/usr/lib/ \
 	  -DEIGEN3D_INCLUDE=/usr/include/eigen3/ \
-	  -DBOOST_ROOT=~/Documents/development/libs/boost/boost_1_46_1/ \
-	  -DBOOST_LIBRARYDIR=~/Documents/development/libs/boost/boost_1_46_1/stage/lib \
-	  -DP5_JAR=~/Documents/localApps/processing-1.5.1/lib/core.jar \
+          -DBOOST_ROOT=~/Documents/development/libs/boost/boost_1_46_1-32/ \
+          -DP5_JAR=~/Documents/localApps/processing-1.5.1/lib/core.jar \
+          -DKDL_LIBDIR=./dist/all/SimpleKDL/library/lib32/ \
 	  ..
-
-#	  -DBOOST_ROOT=~/Documents/development/libs/boost/boost_1_46_1/ \
-#	  -DBOOST_LIBRARYDIR=~/Documents/development/libs/boost/boost_1_46_1/stage/lib \
 
 
 echo "--- build ---"
@@ -51,9 +45,9 @@ make -j 6
 
 echo "--- copy ---"
 # copy the library
-cp SimpleOpenNI.jar ../dist/all/SimpleOpenNI/library
-cp libSimpleOpenNI*.so ../dist/all/SimpleOpenNI/library
+cp SimpleKDL.jar ../dist/all/SimpleKDL/library
+cp libSimpleKDL*.so ../dist/all/SimpleKDL/library
 
 # copy the doc
-cp -r ./doc/* ../dist/all/SimpleOpenNI/documentation/
+cp -r ./doc/* ../dist/all/SimpleKDL/documentation/
 

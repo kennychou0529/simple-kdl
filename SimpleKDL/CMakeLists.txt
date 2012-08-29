@@ -31,6 +31,9 @@ INCLUDE(${SWIG_USE_FILE})
 
 # -----------------------------------------------------------------------------
 # check java/jni
+
+#LINK_DIRECTORIES(/usr/lib/jvm/java-6-openjdk-i386/jre/lib/i386/)
+
 FIND_PACKAGE(Java REQUIRED)
 FIND_PACKAGE(JNI REQUIRED)
 INCLUDE_DIRECTORIES(${JAVA_INCLUDE_PATH})
@@ -38,6 +41,10 @@ INCLUDE_DIRECTORIES(${JAVA_INCLUDE_PATH2})
  
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
  
+
+#message("JAVA_LIBRARIES : " ${JAVA_LIBRARIES})
+#message("JNI_LIBRARIES : " ${JNI_LIBRARIES})
+
 # -----------------------------------------------------------------------------
 # java tools
 IF(WIN32)
@@ -62,7 +69,7 @@ IF(Boost_INCLUDE_DIRS MATCHES "Boost_INCLUDE_DIR-NOTFOUND")
 	MESSAGE("> cmake -DBOOST_ROOT=/usr/??? ..")	
 ELSE()
 	INCLUDE_DIRECTORIES ( ${Boost_INCLUDE_DIRS} )
-	LINK_DIRECTORIES ( ${Boost_LIBRARY_DIRS} )
+        LINK_DIRECTORIES ( ${Boost_LIBRARY_DIRS} )
 	message(${Boost_INCLUDE_DIRS})
 	message(${Boost_LIBRARY_DIRS})
   
@@ -81,11 +88,13 @@ ENDIF()
 # orocos - kdl
 
 SET(LIBS ${LIBS} orocos-kdl)
+# get absolute path, otherwise link_directories will not work
+GET_FILENAME_COMPONENT(KDL_LIBDIR "${KDL_LIBDIR}" ABSOLUTE)
+LINK_DIRECTORIES(${KDL_LIBDIR})
 
 # -----------------------------------------------------------------------------
 # swig 
 SET(CMAKE_SWIG_FLAGS -package SimpleKDL)
-
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # -----------------------------------------------------------------------------
@@ -95,8 +104,18 @@ LINK_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 # load from local folder
 SET(CMAKE_SKIP_RPATH NO)
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-SET(CMAKE_INSTALL_RPATH "/$ORIGIN/./lib64")
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
+
+IF(UNIX)
+    IF(${MACH_ARCH} MATCHES "64")
+        SET(CMAKE_INSTALL_RPATH "/$ORIGIN/./lib64")
+    ELSE()
+        SET(CMAKE_INSTALL_RPATH "/$ORIGIN/./lib32")
+    ENDIF()
+ELSE()
+    SET(CMAKE_INSTALL_RPATH "/$ORIGIN")
+ENDIF()
+
 
 # -----------------------------------------------------------------------------
 # processing wrappers
@@ -173,7 +192,8 @@ MAKE_DIRECTORY(${CMAKE_CURRENT_BINARY_DIR}/src)
 
 
 SWIG_ADD_MODULE(SimpleKDL Java ${SWIG_SOURCES})
-SWIG_LINK_LIBRARIES(SimpleKDL ${JAVA_LIBRARIES} ${JNI_LIBRARIES} ${Boost_LIBRARIES} ${LIBS})
+SWIG_LINK_LIBRARIES(SimpleKDL ${JAVA_LIBRARIES} ${Boost_LIBRARIES} ${LIBS})
+#SWIG_LINK_LIBRARIES(SimpleKDL ${JAVA_LIBRARIES} ${JNI_LIBRARIES} ${Boost_LIBRARIES} ${LIBS})
 
 # set the arch extension for the lib
 IF(NOT APPLE)
@@ -198,15 +218,16 @@ IF(NOT APPLE)
 
 ENDIF()
 
+
 # only for linux
 IF(UNIX)
   IF(${MACH_ARCH} MATCHES "32")
-	SET_TARGET_PROPERTIES(SimpleKDL PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+        SET_TARGET_PROPERTIES(SimpleKDL PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
   ENDIF()
 ENDIF()
 
 set(P5_JAR "${P5_JAR}")
-set(P5_JAR_OPENGL ${P5_JAR_OPENGL})
+#set(P5_JAR_OPENGL ${P5_JAR_OPENGL})
 
 # get full paths, otherwise javac/javadoc has problems with multiple jar locations
 GET_FILENAME_COMPONENT(P5_JAR "${P5_JAR}" ABSOLUTE)
