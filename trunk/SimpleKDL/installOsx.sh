@@ -21,10 +21,16 @@ if [ ! -d $P5_Path/libraries ]; then
 fi
 
 # copie the files
-cp -r ./dist/all/SimpleOpenNI  $P5_Path/libraries/
+cp -r ./dist/all/SimpleKDL  $P5_Path/libraries/
 
 # remove all subversion folders
-cd $P5_Path/libraries/SimpleOpenNI
+cd $P5_Path/libraries/SimpleKDL
 rm -rf `find . -type d -name .svn`
 
-echo "--- installed SimpleOpenNI ---"
+# change name path for a local library
+cd ./library
+install_name_tool -change /usr/local/lib/liborocos-kdl.1.1.dylib @loader_path/lib/liborocos-kdl.1.1.dylib libSimpleKDL.jnilib
+echo "paths:"
+otool -L libSimpleKDL.jnilib
+
+echo "--- installed SimpleKDL ---"
