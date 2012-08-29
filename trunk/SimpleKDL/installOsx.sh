@@ -29,7 +29,7 @@ rm -rf `find . -type d -name .svn`
 
 # change name path for a local library
 cd ./library
-install_name_tool -change /usr/local/lib/liborocos-kdl.1.1.dylib @loader_path/lib/liborocos-kdl.1.1.dylib libSimpleKDL.jnilib
+install_name_tool -change /usr/local/lib/liborocos-kdl.1.1.dylib @loader_path/liborocos-kdl.1.1.dylib libSimpleKDL.jnilib
 echo "paths:"
 otool -L libSimpleKDL.jnilib
 
