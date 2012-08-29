@@ -95,7 +95,7 @@ LINK_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 # load from local folder
 SET(CMAKE_SKIP_RPATH NO)
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-SET(CMAKE_INSTALL_RPATH "\$ORIGIN")
+SET(CMAKE_INSTALL_RPATH "/$ORIGIN/./lib64")
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 
 # -----------------------------------------------------------------------------
