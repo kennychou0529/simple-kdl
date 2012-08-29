@@ -28,10 +28,6 @@ cd ./build
 
 echo "--- generate cmake ---"
 cmake -DCMAKE_BUILD_TYPE=Release \
-	  -DOPEN_NI_INCLUDE=/usr/include/ni/ \
-	  -DOPEN_NI_LIB=/usr/lib/ \
-	  -DXN_NITE_INCLUDE=/usr/include/nite/ \
-	  -DXN_NITE_LIB=/usr/lib/ \
 	  -DEIGEN3D_INCLUDE=/usr/local/include/eigen3/ \
 	  -DP5_JAR=/Applications/Processing.app/Contents/Resources/Java/core.jar \
 	  -DCMAKE_OSX_ARCHITECTURES="i386;x86_64" \
@@ -45,8 +41,8 @@ make -j 6 VERBOSE=1
 
 echo "--- copy ---"
 # copy the library
-cp SimpleOpenNI.jar ../dist/all/SimpleOpenNI/library
-cp libSimpleOpenNI.jnilib ../dist/all/SimpleOpenNI/library
+cp SimpleKDL.jar ../dist/all/SimpleKDL/library
+cp libSimpleKDL.jnilib ../dist/all/SimpleKDL/library
 
 # copy the doc
-cp -r ./doc/* ../dist/all/SimpleOpenNI/documentation/
+cp -r ./doc/* ../dist/all/SimpleKDL/documentation/
