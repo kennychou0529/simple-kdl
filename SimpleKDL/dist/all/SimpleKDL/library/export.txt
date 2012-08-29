@@ -1,0 +1,7 @@
+applet=SimpleKDL.jar
+
+application.macosx=SimpleKDL.jar,libSimpleKDL.jnilib
+application.windows32=SimpleKDL.jar,SimpleKDL32.dll
+application.windows64=SimpleKDL.jar,SimpleKDL64.dll
+application.linux32=SimpleKDL.jar,libSimpleKDL32.so,./lib32/*
+application.linux64=SimpleKDL.jar,libSimpleKDL64.so,./lib64/liborocos-kdl.so
