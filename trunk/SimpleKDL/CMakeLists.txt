@@ -86,11 +86,29 @@ ENDIF()
 
 # -----------------------------------------------------------------------------
 # orocos - kdl
+IF(WIN32)
+	IF(${MACH_ARCH} MATCHES "64")
+		#64bit
+		SET(LIBS ${LIBS} orocos-kdl64)
+	ELSE()
+		# 32bit
+		SET(LIBS ${LIBS} orocos-kdl32)
+	ENDIF()
+  
+	
+	INCLUDE_DIRECTORIES ( ${KDL_INCLUDE} )
+	
+	# get absolute path, otherwise link_directories will not work
+	GET_FILENAME_COMPONENT(KDL_LIBDIR "${KDL_LIBDIR}" ABSOLUTE)
+	LINK_DIRECTORIES(${KDL_LIBDIR})
+ELSE()
+	# unix
+	SET(LIBS ${LIBS} orocos-kdl)
+	# get absolute path, otherwise link_directories will not work
+	GET_FILENAME_COMPONENT(KDL_LIBDIR "${KDL_LIBDIR}" ABSOLUTE)
+	LINK_DIRECTORIES(${KDL_LIBDIR})
+ENDIF()
 
-SET(LIBS ${LIBS} orocos-kdl)
-# get absolute path, otherwise link_directories will not work
-GET_FILENAME_COMPONENT(KDL_LIBDIR "${KDL_LIBDIR}" ABSOLUTE)
-LINK_DIRECTORIES(${KDL_LIBDIR})
 
 # -----------------------------------------------------------------------------
 # swig 
