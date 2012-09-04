@@ -24,12 +24,20 @@
 package SimpleKDL;
 
 import processing.core.*;
-
+import java.lang.reflect.Method;
 
 public class KinematicSolver
 {
     public final static int     IK_TYPE_DEFAULT     = 0;
     public final static int     IK_TYPE_JL          = 1;
+
+    public final static int     USER_DRAW_NONE      = 0;
+    public final static int     USER_DRAW_COORSYS   = 1 << 0;
+    public final static int     USER_DRAW_JOINT     = 1 << 1;
+    public final static int     USER_DRAW_ANGLE     = 1 << 2;
+    public final static int     USER_DRAW_CONLINE   = 1 << 3;
+
+    public final static int     USER_DRAW_ALL       = USER_DRAW_COORSYS | USER_DRAW_JOINT | USER_DRAW_ANGLE | USER_DRAW_CONLINE;
 
 
     protected Chain             _chain = null;
@@ -58,6 +66,9 @@ public class KinematicSolver
 
     protected static float      _scale = 1.0f;
 
+    protected Method            _drawSegmentMethod;
+    protected Object            _drawSegmentObject;
+
     public static void setScale(float scale)
     {
         _scale = scale;
@@ -66,8 +77,11 @@ public class KinematicSolver
 
     public int getIkType() { return _ikType; }
 
+
     public KinematicSolver(Chain chain,float[] jointDegAnglesMin,float[] jointDegAnglesMax)
     {
+        _drawSegmentMethod = null;
+
         _chain = chain;
         _ikType = IK_TYPE_JL;
 
@@ -110,6 +124,8 @@ public class KinematicSolver
 
     public KinematicSolver(Chain chain)
     {
+        _drawSegmentMethod = null;
+
         _chain = chain;
         _ikType = IK_TYPE_DEFAULT;
 
@@ -131,6 +147,24 @@ public class KinematicSolver
         // inverse kinematic
         _vik = new ChainIkSolverVel_pinv(_chain);
         _ik = new ChainIkSolverPos_NR(_chain, _fk, _vik,_maxItr,_eps);
+    }
+
+    public void setCallback(Object listener)
+    {
+        _drawSegmentMethod = getMethodRef(listener,"onDrawSegment",new Class[] { KinematicSolver.class, int.class, PVector.class});
+        _drawSegmentObject = listener;
+    }
+
+    public static Method getMethodRef(Object obj,String methodName,Class[] paraList)
+    {
+            Method	ret = null;
+            try {
+                    ret = obj.getClass().getMethod(methodName,paraList);
+            }
+            catch (Exception e)
+            { // no such method, or an error.. which is fine, just ignore
+            }
+            return ret;
     }
 
     public boolean solveIk(SimpleKDL.Frame endFrame)
@@ -156,7 +190,7 @@ public class KinematicSolver
         else
         {   // couldn't solve ik
 
-           _jointAnglesInit = new JntArray(_jointAnglesDef);
+           _jointAnglesInit = new JntArray(oldOut);
 
            // set last pos
            _jointAnglesOut = new JntArray(oldOut);
@@ -236,11 +270,11 @@ public class KinematicSolver
             switch(_ikType)
             {
             case IK_TYPE_JL:
-                drawChain(g,_chain, _jointAnglesOut, _jointAnglesMin, _jointAnglesMax);
+                drawChain(this,g,_chain, _jointAnglesOut, _jointAnglesMin, _jointAnglesMax);
                 break;
             case IK_TYPE_DEFAULT:
             default:
-                drawChain(g,_chain, _jointAnglesOut, null, null);
+                drawChain(this,g,_chain, _jointAnglesOut, null, null);
                 break;
             }
         }
@@ -248,10 +282,20 @@ public class KinematicSolver
 
     public static void drawChain(PGraphics g,SimpleKDL.Chain chain, SimpleKDL.JntArray angles)
     {
-        drawChain(g,chain,angles,null,null);
+        drawChain(null,g, chain,angles,null,null);
+    }
+
+    public static void drawChain(KinematicSolver kinematicSolver,PGraphics g,SimpleKDL.Chain chain, SimpleKDL.JntArray angles)
+    {
+        drawChain(null,g,chain,angles,null,null);
     }
 
     public static void drawChain(PGraphics g,SimpleKDL.Chain chain, SimpleKDL.JntArray angles, SimpleKDL.JntArray anglesMin, SimpleKDL.JntArray anglesMax)
+    {
+        drawChain(null, chain, angles, anglesMin, anglesMax);
+    }
+
+    public static void drawChain(KinematicSolver kinematicSolver,PGraphics g,SimpleKDL.Chain chain, SimpleKDL.JntArray angles, SimpleKDL.JntArray anglesMin, SimpleKDL.JntArray anglesMax)
     {
         Segment segment;
 
@@ -259,113 +303,161 @@ public class KinematicSolver
         if(anglesMin != null && anglesMax != null)
         {
             for (int i=0;i < chain.getNrOfSegments();i++)
-                drawSegment(g,chain.getSegment(i), angles.get(i), anglesMin.get(i), anglesMax.get(i));
+                drawSegment(kinematicSolver,g,chain.getSegment(i),i, angles.get(i), anglesMin.get(i), anglesMax.get(i));
         }
         else
         {
             for (int i=0;i < chain.getNrOfSegments();i++)
-                drawSegment(g,chain.getSegment(i), angles.get(i), 0.0, 0.0);
+                drawSegment(kinematicSolver,g,chain.getSegment(i),i, angles.get(i), 0.0, 0.0);
         }
         g.popMatrix();
     }
 
     public static void drawSegment(PGraphics g,SimpleKDL.Segment segment, double angle, double angleMin, double angleMax)
     {
-        PVector vec = new PVector();
+        drawSegment(null,g,segment,-1, angle, angleMin, angleMax);
+    }
 
-        Joint   curJoint = segment.getJoint();
+    public static void drawSegment(KinematicSolver kinematicSolver,PGraphics g,SimpleKDL.Segment segment,int segmentIndex, double angle, double angleMin, double angleMax)
+    {
+        int             userDrawRet = USER_DRAW_ALL;
+        Joint           curJoint = segment.getJoint();
+        Joint.JointType type = curJoint.getType();
 
         PMatrix3D matEnd = getMatrix(segment.getFrameToTip());
         PMatrix3D matRot = getMatrix(curJoint.pose(angle));
 
-        // draw the axis
-        Utils.drawCoordSys(g,70 * _scale);
+        PVector endPos = new PVector();
+        matEnd.mult(new PVector(0, 0, 0), endPos);
 
-        // draw angle
-        g.pushMatrix();
-            Joint.JointType type = curJoint.getType();
-            if(type == Joint.JointType.RotX)
+        // check if there is a user defined draw method
+        if(kinematicSolver != null && kinematicSolver._drawSegmentMethod != null)
+        {   // call user defined draw method
+            try
             {
-                g.rotate(PApplet.radians(90),0.0f,1.0f,0.0f);
-                drawJointAngle(g,curJoint,angle);
+                g.pushMatrix();
+
+                // set the rotation
+                g.applyMatrix(matRot);
+
+                g.pushStyle();
+
+                Integer retInt = (Integer)(kinematicSolver._drawSegmentMethod.invoke(kinematicSolver._drawSegmentObject,
+                                                                              new Object[] { kinematicSolver,
+                                                                                            segmentIndex,
+                                                                                            endPos }));
+                userDrawRet = retInt.intValue();
+
+                g.popStyle();
+                g.popMatrix();
             }
-            else if(type == Joint.JointType.RotY)
-            {
-                g.rotate(PApplet.radians(90),1.0f,0.0f,0.0f);
-                drawJointAngle(g,curJoint,angle);
-            }
-            else if(type == Joint.JointType.RotZ)
-            {
-                drawJointAngle(g,curJoint,angle);
-            }
-            else if(type == Joint.JointType.RotAxis)
-            {
-                Vector axis = curJoint.JointAxis();
-                //rotate((float)angle,(float)axis.x(),(float)axis.y(),(float)axis.z());
-                drawJointAngle(g,curJoint,angle);
-            }
-            else if(type == Joint.JointType.TransX)
-            {
-            }
-            else if(type == Joint.JointType.TransY)
-            {
-            }
-            else if(type == Joint.JointType.TransZ)
-            {
-            }
-            else if(type == Joint.JointType.TransAxis)
-            {
-            }
-        g.popMatrix();
+            catch (Exception e)
+            {}
+        }
+
+        if((userDrawRet & USER_DRAW_COORSYS) != 0)
+        {
+            // draw the axis
+            Utils.drawCoordSys(g,70 * _scale);
+        }
+
+        if((userDrawRet & USER_DRAW_ANGLE) != 0)
+        {
+            // draw angle
+            g.pushMatrix();
+
+                if(type == Joint.JointType.RotX)
+                {
+                    g.rotate(PApplet.radians(90),0.0f,1.0f,0.0f);
+                    drawJointAngle(g,curJoint,angle);
+                }
+                else if(type == Joint.JointType.RotY)
+                {
+                    g.rotate(PApplet.radians(90),1.0f,0.0f,0.0f);
+                    drawJointAngle(g,curJoint,angle);
+                }
+                else if(type == Joint.JointType.RotZ)
+                {
+                    drawJointAngle(g,curJoint,angle);
+                }
+                else if(type == Joint.JointType.RotAxis)
+                {
+                    Vector axis = curJoint.JointAxis();
+                    //rotate((float)angle,(float)axis.x(),(float)axis.y(),(float)axis.z());
+                    drawJointAngle(g,curJoint,angle);
+                }
+                else if(type == Joint.JointType.TransX)
+                {
+                }
+                else if(type == Joint.JointType.TransY)
+                {
+                }
+                else if(type == Joint.JointType.TransZ)
+                {
+                }
+                else if(type == Joint.JointType.TransAxis)
+                {
+                }
+                else if(type == Joint.JointType.None)
+                {
+                }
+            g.popMatrix();
+        }
 
         // set the rotation
         g.applyMatrix(matRot);
 
-        // draw limb
-        g.pushStyle();
-        matEnd.mult(new PVector(0, 0, 0), vec);
+        if((userDrawRet & USER_DRAW_CONLINE)!= 0)
+        {
+            g.pushStyle();
+            g.stroke(200, 200, 100);
+            g.strokeWeight(2);
+            g.line(0, 0, 0,
+                   endPos.x, endPos.y, endPos.z);
+            g.popStyle();
+        }
 
-        g.stroke(200, 200, 100);
-        g.strokeWeight(2);
-        g.line(0, 0, 0,
-                              vec.x, vec.y, vec.z);
-        g.popStyle();
+        if((userDrawRet & USER_DRAW_JOINT) != 0)
+        {        // draw the joint
+            g.pushMatrix();
+                if(type == Joint.JointType.RotX)
+                {
+                  g.rotate(PApplet.radians(90),0.0f,1.0f,0.0f);
+                  drawJoint(g,curJoint);
+                }
+                else if(type == Joint.JointType.RotY)
+                {
+                  g.rotate(PApplet.radians(90),1.0f,0.0f,0.0f);
+                  drawJoint(g,curJoint);
+                }
+                else if(type == Joint.JointType.RotZ)
+                {
+                  drawJoint(g,curJoint);
+                }
+                else if(type == Joint.JointType.RotAxis)
+                {
+                  Vector axis = curJoint.JointAxis();
+                  //rotate((float)angle,(float)axis.x(),(float)axis.y(),(float)axis.z());
+                  drawJoint(g,curJoint);
+                }
+                else if(type == Joint.JointType.TransX)
+                {
+                }
+                else if(type == Joint.JointType.TransY)
+                {
+                }
+                else if(type == Joint.JointType.TransZ)
+                {
+                }
+                else if(type == Joint.JointType.TransAxis)
+                {
+                }
+                else if(type == Joint.JointType.None)
+                {
 
-        // draw the joint
-        g.pushMatrix();
-            if(type == Joint.JointType.RotX)
-            {
-              g.rotate(PApplet.radians(90),0.0f,1.0f,0.0f);
-              drawJoint(g,curJoint);
-            }
-            else if(type == Joint.JointType.RotY)
-            {
-              g.rotate(PApplet.radians(90),1.0f,0.0f,0.0f);
-              drawJoint(g,curJoint);
-            }
-            else if(type == Joint.JointType.RotZ)
-            {
-              drawJoint(g,curJoint);
-            }
-            else if(type == Joint.JointType.RotAxis)
-            {
-              Vector axis = curJoint.JointAxis();
-              //rotate((float)angle,(float)axis.x(),(float)axis.y(),(float)axis.z());
-              drawJoint(g,curJoint);
-            }
-            else if(type == Joint.JointType.TransX)
-            {
-            }
-            else if(type == Joint.JointType.TransY)
-            {
-            }
-            else if(type == Joint.JointType.TransZ)
-            {
-            }
-            else if(type == Joint.JointType.TransAxis)
-            {
-            }
-        g.popMatrix();
+                }
+            g.popMatrix();
+        }
 
         g.applyMatrix(matEnd);
     }
