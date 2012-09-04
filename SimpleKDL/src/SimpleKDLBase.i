@@ -37,6 +37,31 @@
 #include <kdl/treeiksolverpos_nr_jl.hpp>
 #include <kdl/treeiksolverpos_online.hpp>
 
+#include <kdl/path.hpp>
+#include <kdl/path_line.hpp>
+#include <kdl/path_composite.hpp>
+#include <kdl/path_circle.hpp>
+#include <kdl/path_point.hpp>
+#include <kdl/path_cyclic_closed.hpp>
+#include <kdl/path_roundedcomposite.hpp>
+
+#include <kdl/rotational_interpolation.hpp>
+#include <kdl/rotational_interpolation_sa.hpp>
+
+#include <kdl/velocityprofile.hpp>
+#include <kdl/velocityprofile_dirac.hpp>
+#include <kdl/velocityprofile_rect.hpp>
+#include <kdl/velocityprofile_spline.hpp>
+#include <kdl/velocityprofile_trap.hpp>
+#include <kdl/velocityprofile_traphalf.hpp>
+
+#include <kdl/trajectory.hpp>
+#include <kdl/trajectory_composite.hpp>
+#include <kdl/trajectory_segment.hpp>
+#include <kdl/trajectory_stationary.hpp>
+
+
+
 %}
 
 %include "std_string.i"
@@ -1530,5 +1555,374 @@ public:
     void setLambda(const double& lambda);
     double getLambda () const {return lambda;}
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// paths
+
+class Path
+{
+public:
+    enum IdentifierType {
+            ID_LINE=1,
+            ID_CIRCLE=2,
+            ID_COMPOSITE=3,
+            ID_ROUNDED_COMPOSITE=4,
+            ID_POINT=5,
+            ID_CYCLIC_CLOSED=6
+    };
+
+    virtual double LengthToS(double length)  = 0;
+    virtual double PathLength() = 0;
+
+    virtual Frame Pos(double s) const = 0;
+    virtual Twist Vel(double s,double sd) const  = 0;
+    virtual Twist Acc(double s,double sd,double sdd) const  = 0;
+    virtual void Write(std::ostream& os)  = 0;
+
+    static Path* Read(std::istream& is);
+    virtual Path* Clone() = 0;
+
+    virtual IdentifierType getIdentifier() const=0;
+
+    virtual ~Path() {}
+};
+
+
+class RotationalInterpolation
+{
+public:
+
+    virtual void SetStartEnd(Rotation start,Rotation end) = 0;
+    virtual double Angle() = 0;
+    virtual Rotation Pos(double theta) const = 0;
+    virtual Vector Vel(double theta,double thetad) const = 0;
+    virtual Vector Acc(double theta,double thetad,double thetadd) const = 0;
+    virtual void Write(std::ostream& os) const = 0;
+    static RotationalInterpolation* Read(std::istream& is);
+    virtual RotationalInterpolation* Clone() const = 0;
+    virtual ~RotationalInterpolation();
+};
+
+%feature("director") RotationalInterpolation_SingleAxis;
+class RotationalInterpolation_SingleAxis: public RotationalInterpolation
+{
+public:
+    RotationalInterpolation_SingleAxis();
+    virtual void SetStartEnd(Rotation start,Rotation end);
+    virtual double Angle();
+    virtual Rotation Pos(double th) const;
+    virtual Vector Vel(double th,double thd) const;
+    virtual Vector Acc(double th,double thd,double thdd)   const;
+    virtual void Write(std::ostream& os) const;
+    virtual RotationalInterpolation* Clone() const;
+    virtual ~RotationalInterpolation_SingleAxis();
+};
+
+
+%feature("director") Path_Line;
+class Path_Line : public Path
+{
+public:
+
+    Path_Line(const Frame& F_base_start,
+            const Frame& F_base_end,
+            RotationalInterpolation* orient,
+            double eqradius,
+            bool _aggregate=true);
+    Path_Line(const Frame& F_base_start,
+            const Twist& twist_in_base,
+            RotationalInterpolation* orient,
+            double eqradius,
+            bool _aggregate=true);
+    double LengthToS(double length);
+    virtual double PathLength();
+    virtual Frame Pos(double s) const;
+    virtual Twist Vel(double s,double sd) const ;
+    virtual Twist Acc(double s,double sd,double sdd) const;
+    virtual void Write(std::ostream& os);
+    virtual Path* Clone();
+
+    virtual IdentifierType getIdentifier() const;
+    virtual ~Path_Line();
+};
+
+
+%feature("director") Path_Composite;
+class Path_Composite : public Path
+{
+public:
+    Path_Composite();
+
+    void Add(Path* geom, bool aggregate=true);
+    virtual double LengthToS(double length);
+    virtual double PathLength();
+    virtual Frame Pos(double s) const;
+    virtual Twist Vel(double s,double sd) const;
+    virtual Twist Acc(double s,double sd,double sdd) const;
+    virtual Path* Clone();
+    virtual void Write(std::ostream& os);
+    virtual int GetNrOfSegments();
+    virtual Path* GetSegment(int i);
+    virtual double GetLengthToEndOfSegment(int i);
+    virtual void GetCurrentSegmentLocation(double s, int &segment_number, double& inner_s);
+    virtual IdentifierType getIdentifier() const ;
+    virtual ~Path_Composite();
+};
+
+%feature("director") Path_Circle;
+class Path_Circle : public Path
+{
+public:
+    Path_Circle(const Frame& F_base_start,const Vector& V_base_center,
+            const Vector& V_base_p,
+            const Rotation& R_base_end,
+            double alpha,
+            RotationalInterpolation* otraj,
+            double eqradius,
+            bool _aggregate=true);
+    double LengthToS(double length);
+    virtual double PathLength();
+    virtual Frame Pos(double s) const;
+    virtual Twist Vel(double s,double sd) const;
+    virtual Twist Acc(double s,double sd,double sdd) const;
+    virtual Path* Clone();
+    virtual void Write(std::ostream& os);
+    virtual IdentifierType getIdentifier() const;
+virtual ~Path_Circle();
+};
+
+%feature("director") Path_Point;
+class Path_Point : public Path
+{
+public:
+    Path_Point(const Frame& F_base_start);
+    double LengthToS(double length);
+    virtual double PathLength();
+    virtual Frame Pos(double s) const;
+    virtual Twist Vel(double s,double sd) const ;
+    virtual Twist Acc(double s,double sd,double sdd) const;
+    virtual void Write(std::ostream& os);
+    virtual Path* Clone();
+    virtual IdentifierType getIdentifier() const ;
+    virtual ~Path_Point();
+};
+
+%feature("director") Path_Cyclic_Closed;
+class Path_Cyclic_Closed : public Path
+{
+public:
+    Path_Cyclic_Closed(Path* _geom,int _times, bool _aggregate=true);
+    virtual double LengthToS(double length);
+    virtual double PathLength();
+    virtual Frame Pos(double s) const;
+    virtual Twist Vel(double s,double sd) const;
+    virtual Twist Acc(double s,double sd,double sdd) const;
+    virtual void Write(std::ostream& os);
+    static Path* Read(std::istream& is);
+    virtual Path* Clone();
+    virtual IdentifierType getIdentifier() const;
+    virtual ~Path_Cyclic_Closed();
+};
+
+%feature("director") Path_RoundedComposite;
+class Path_RoundedComposite : public Path
+{
+public:
+
+    Path_RoundedComposite(double radius,double eqradius,RotationalInterpolation* orient, bool aggregate=true);
+    void Add(const Frame& F_base_point);
+    void Finish();
+    virtual double LengthToS(double length);
+    virtual double PathLength();
+    virtual Frame Pos(double s) const;
+    virtual Twist Vel(double s,double sd) const;
+    virtual Twist Acc(double s,double sd,double sdd) const;
+    virtual Path* Clone();
+    virtual void Write(std::ostream& os);
+    virtual int GetNrOfSegments();
+    virtual Path* GetSegment(int i);
+    virtual double GetLengthToEndOfSegment(int i);
+    virtual void GetCurrentSegmentLocation(double s, int &segment_number, double& inner_s);
+    virtual IdentifierType getIdentifier() const;
+    virtual ~Path_RoundedComposite();
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// velocity profile
+
+class VelocityProfile
+{
+public:
+    virtual void SetProfile(double pos1,double pos2) = 0;
+    virtual void SetProfileDuration(
+            double pos1,double pos2,double duration) = 0;
+    virtual double Duration() const = 0;
+    virtual double Pos(double time) const = 0;
+    virtual double Vel(double time) const = 0;
+    virtual double Acc(double time) const = 0;
+    virtual void Write(std::ostream& os) const = 0;
+    static VelocityProfile* Read(std::istream& is);
+    virtual VelocityProfile* Clone() const = 0;
+    virtual ~VelocityProfile();
+};
+
+%feature("director") VelocityProfile_Dirac;
+class VelocityProfile_Dirac : public VelocityProfile
+{
+public:
+    void SetProfile(double pos1,double pos2);
+    virtual void SetProfileDuration(double pos1,double pos2,double duration);
+    virtual double Duration() const;
+    virtual double Pos(double time) const;
+    virtual double Vel(double time) const;
+    virtual double Acc(double time) const;
+    virtual void Write(std::ostream& os) const;
+    virtual VelocityProfile* Clone() const;
+    virtual ~VelocityProfile_Dirac() {}
+};
+
+
+%feature("director") VelocityProfile_Rectangular;
+class VelocityProfile_Rectangular : public VelocityProfile
+{
+public:
+    double maxvel;
+
+    VelocityProfile_Rectangular(double _maxvel=0);
+    void SetMax( double _maxvel );
+    void SetProfile(double pos1,double pos2);
+    virtual void SetProfileDuration(
+            double pos1,double pos2,double duration);
+    virtual double Duration() const;
+    virtual double Pos(double time) const;
+    virtual double Vel(double time) const;
+    virtual double Acc(double time) const;
+    virtual void Write(std::ostream& os) const;
+    virtual VelocityProfile* Clone() const;
+    virtual ~VelocityProfile_Rectangular();
+};
+
+%feature("director") VelocityProfile_Spline;
+class VelocityProfile_Spline : public VelocityProfile
+{
+public:
+    VelocityProfile_Spline();
+    VelocityProfile_Spline(const VelocityProfile_Spline &p);
+    virtual ~VelocityProfile_Spline();
+    virtual void SetProfile(double pos1, double pos2);
+    virtual void SetProfileDuration(
+      double pos1, double pos2, double duration);
+    virtual void SetProfileDuration(
+      double pos1, double vel1, double pos2, double vel2, double duration);
+    virtual void SetProfileDuration(double pos1, double vel1, double acc1, double pos2, double vel2, double acc2, double duration);
+    virtual double Duration() const;
+    virtual double Pos(double time) const;
+    virtual double Vel(double time) const;
+    virtual double Acc(double time) const;
+    virtual void Write(std::ostream& os) const;
+    virtual VelocityProfile* Clone() const;
+};
+
+%feature("director") VelocityProfile_Trap;
+class VelocityProfile_Trap : public VelocityProfile
+{
+public:
+    VelocityProfile_Trap(double _maxvel=0,double _maxacc=0);
+    virtual void SetProfile(double pos1,double pos2);
+    virtual void SetProfileDuration(
+            double pos1,double pos2,double newduration
+    );
+    virtual void SetMax(double _maxvel,double _maxacc);
+    virtual double Duration() const;
+    virtual double Pos(double time) const;
+    virtual double Vel(double time) const;
+    virtual double Acc(double time) const;
+    virtual void Write(std::ostream& os) const;
+    virtual VelocityProfile* Clone() const;
+    virtual ~VelocityProfile_Trap();
+};
+
+%feature("director") VelocityProfile_TrapHalf;
+class VelocityProfile_TrapHalf : public VelocityProfile
+{
+public:
+    VelocityProfile_TrapHalf(double _maxvel=0,double _maxacc=0,bool _starting=true);
+    void SetMax(double _maxvel,double _maxacc, bool _starting );
+    virtual void SetProfile(double pos1,double pos2);
+    virtual void SetProfileDuration(
+            double pos1,double pos2,double newduration
+    );
+    virtual double Duration() const;
+    virtual double Pos(double time) const;
+    virtual double Vel(double time) const;
+    virtual double Acc(double time) const;
+    virtual void Write(std::ostream& os) const;
+    virtual VelocityProfile* Clone() const;
+    virtual ~VelocityProfile_TrapHalf();
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// trajectories
+
+class Trajectory
+{
+public:
+    virtual double Duration() const = 0;
+    virtual Frame Pos(double time) const = 0;
+    virtual Twist Vel(double time) const = 0;
+    virtual Twist Acc(double time) const = 0;
+    virtual Trajectory* Clone() const = 0;
+    virtual void Write(std::ostream& os) const = 0;
+    static Trajectory* Read(std::istream& is);
+    virtual ~Trajectory() {}
+};
+
+%feature("director") Trajectory_Composite;
+class Trajectory_Composite: public Trajectory
+{
+public:
+    Trajectory_Composite();
+    virtual double Duration() const;
+    virtual Frame Pos(double time) const;
+    virtual Twist Vel(double time) const;
+    virtual Twist Acc(double time) const;
+    virtual void Add(Trajectory* elem);
+    virtual void Destroy();
+    virtual void Write(std::ostream& os) const;
+    virtual Trajectory* Clone() const;
+    virtual ~Trajectory_Composite();
+};
+
+%feature("director") Trajectory_Segment;
+class Trajectory_Segment :  public Trajectory
+{
+public:
+    Trajectory_Segment(Path* _geom, VelocityProfile* _motprof, bool _aggregate=true);
+    Trajectory_Segment(Path* _geom, VelocityProfile* _motprof, double duration, bool _aggregate=true);
+    virtual double Duration() const;
+    virtual Frame Pos(double time) const;
+    virtual Twist Vel(double time) const;
+    virtual Twist Acc(double time) const;
+    virtual Trajectory* Clone() const;
+    virtual void Write(std::ostream& os) const;
+    virtual Path* GetPath();
+    virtual VelocityProfile* GetProfile();
+    virtual ~Trajectory_Segment();
+};
+
+%feature("director") Trajectory_Stationary;
+class Trajectory_Stationary : public Trajectory
+{
+public:
+    Trajectory_Stationary(double _duration,const Frame& _pos);
+    virtual double Duration() const;
+    virtual Frame Pos(double time) const;
+    virtual Twist Vel(double time) const;
+    virtual Twist Acc(double time) const;
+    virtual void Write(std::ostream& os) const;
+    virtual Trajectory* Clone() const;
+    virtual ~Trajectory_Stationary();
+};
+
 
 };
