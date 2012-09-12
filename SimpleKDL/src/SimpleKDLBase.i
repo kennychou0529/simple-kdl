@@ -1718,7 +1718,7 @@ public:
     virtual Twist Vel(double s,double sd) const;
     virtual Twist Acc(double s,double sd,double sdd) const;
     virtual void Write(std::ostream& os);
-    static Path* Read(std::istream& is);
+    //static Path* Read(std::istream& is);
     virtual Path* Clone();
     virtual IdentifierType getIdentifier() const;
     virtual ~Path_Cyclic_Closed();
