@@ -147,6 +147,11 @@ public class Utils
         PVector posV1 = PVector.add(PVector.mult(stepsU, -0.5f * repeat), PVector.mult(stepsV, -0.5f * repeat));
         PVector posV2 = PVector.add(PVector.mult(stepsU, 0.5f * repeat), PVector.mult(stepsV, -0.5f * repeat));
 
+		posU1.add(p1);
+		posU2.add(p1);
+		posV1.add(p1);
+		posV2.add(p1);
+
         // horz
         for (int i=0;i<repeat+1;i++)
         {

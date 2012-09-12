@@ -199,6 +199,14 @@ public class KinematicSolver
         return(ret >= 0);
     }
 
+    public SimpleKDL.Frame solveFk()
+    {
+        Frame finalFrame = new Frame();
+        int ret = _fk.JntToCart(_jointAnglesOut, finalFrame);
+
+        return finalFrame;
+    }
+
     public SimpleKDL.Frame solveFk(SimpleKDL.JntArray angles)
     {
         _jointAnglesOut = new JntArray(angles);
@@ -218,6 +226,9 @@ public class KinematicSolver
 
     public float[] getInitAngles() { return toArray(_jointAnglesInit); }
     public float[] getOutAngles() { return toArray(_jointAnglesOut); }
+
+    public float[] getMinAngles() { return toArray(_jointAnglesMin); }
+    public float[] getMaxAngles() { return toArray(_jointAnglesMax); }
 
     public void setInitAngles(SimpleKDL.JntArray angles)
     {
@@ -546,6 +557,7 @@ public class KinematicSolver
 
         PMatrix3D xform = new PMatrix3D();
         xform.set(tf);
+		xform.transpose();
 
         return xform;
     }
