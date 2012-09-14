@@ -21,10 +21,10 @@ if [ ! -d $P5_Path/libraries ]; then
 fi
 
 # copie the files
-cp -r ./dist/all/SimpleOpenNI  $P5_Path/libraries/
+cp -r ./dist/all/SimpleKDL  $P5_Path/libraries/
 
 # remove all subversion folders
-cd $P5_Path/libraries/SimpleOpenNI
+cd $P5_Path/libraries/SimpleKDL
 rm -rf `find . -type d -name .svn`
 
-echo "--- installed SimpleOpenNI ---"
+echo "--- installed SimpleKDL ---"
