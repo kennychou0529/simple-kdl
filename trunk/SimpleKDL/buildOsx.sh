@@ -38,6 +38,10 @@ echo "--- build ---"
 # build with 6 threads, verbose is optional, but otherwise you can't see the compiler directives
 make -j 6 VERBOSE=1
 
+# change name path for a local library
+install_name_tool -change /usr/local/lib/liborocos-kdl.1.1.dylib @loader_path/liborocos-kdl.1.1.dylib libSimpleKDL.jnilib
+echo "Lib paths:"
+otool -L libSimpleKDL.jnilib
 
 echo "--- copy ---"
 # copy the library
