@@ -28,9 +28,6 @@ SimpleKDL.KinematicSolver     kinematicSolver;
 
 PVector endPoint = new PVector();
 PVector endPointNormal = new PVector();
-PVector endPointRotX = new PVector(1,0,0);
-PVector endPointRotY = new PVector(0,1,0);
-PVector endPointRotZ = new PVector(0,0,-1);
 PMatrix3D endPointMat = new PMatrix3D();
 
 int planeType = 0;
@@ -40,7 +37,7 @@ int mousePick = 0;
 PVector sphereCenter = new PVector(-500,400,150);
 float   sphereRadius = 150;
 
-PVector boxCenter = new PVector(400,300,75);
+PVector boxCenter = new PVector(200,400,75);
 PVector boxSize = new PVector(300,200,150);
 float   boxRotZ = -15;
 
@@ -339,38 +336,39 @@ void pickScene()
   }
 }
  
-void calcEndRotMat(PVector start,PVector end, PVector normalEnd)
+SimpleKDL.Frame calcEndRotMat(PVector start,PVector end, PVector normalEnd)
 {
   PVector v = PVector.sub(end,start);
+  PVector n = normalEnd.get();
   v.normalize();
-  PVector u = v.cross(normalEnd);
+  n.normalize();
+
+  PVector u = v.cross(n);
+  u.normalize();
+
+  v = n.cross(u);
+  v.normalize();
 
   // the end frame should be aligned with the chain base
-  SimpleKDL.Frame testFrame = SimpleKDL.KinematicSolver.getFrame(// orig
-                                                     new PVector(0,0,0),  // z
-                                                     u,
-                                                     v,
-                                                     normalEnd,
-                                                     // dest
-                                                     new PVector(0,0,0),  // x
-                                                     new PVector(1,0,0),  // x
-                                                     new PVector(0,1,0),  // y
-                                                     new PVector(0,0,1)  // z
-                                                     );
+  SimpleKDL.Frame rotFrame = SimpleKDL.KinematicSolver.getFrame(// orig
+																new PVector(0,0,0),  // x
+																new PVector(1,0,0),  // x
+																new PVector(0,1,0),  // y
+																new PVector(0,0,1),  // z
+																// dest
+																new PVector(0,0,0),  // z
+																u,
+																v,
+																n
+																);
 
-   SimpleKDL.Rotation rotFlip =  new SimpleKDL.Rotation(1,0,0,
-                                                        0,1,0,
-                                                        0,0,-1);
-                                                       // 0,0,1);
-                                                      
-   SimpleKDL.Rotation rot =  SimpleKDL.Rotation.RPY(radians(-30),0,0);
+  // kdl is in the right hand coordinate sys.
+  SimpleKDL.Rotation rotFlip =  new SimpleKDL.Rotation(1,0,0,
+                                                       0,1,0,
+                                                       0,0,-1);
+  SimpleKDL.Rotation rotEnd = SimpleKDL.Rotation.mult(rotFrame.getM(),rotFlip);
  
-   SimpleKDL.Rotation rotEnd = SimpleKDL.Rotation.mult(rotFlip,testFrame.getM());
- 
- 
-   endPointRotX = new PVector((float)rotEnd.getData()[0],(float)rotEnd.getData()[1],(float)rotEnd.getData()[2]);
-   endPointRotY = new PVector((float)rotEnd.getData()[3],(float)rotEnd.getData()[4],(float)rotEnd.getData()[5]);
-   endPointRotZ = new PVector((float)rotEnd.getData()[6],(float)rotEnd.getData()[7],(float)rotEnd.getData()[8]);
+  return(new SimpleKDL.Frame(rotEnd,new SimpleKDL.Vector(end.x, end.y, end.z)));
 }
  
 boolean setEndPos(PVector endPos,PVector endPosNormal)
@@ -382,19 +380,15 @@ boolean setEndPos(PVector endPos,PVector endPosNormal)
   endPointNormal = endPosNormal.get();
   
   // calculate rotation frame according to the chain base
-  calcEndRotMat(new PVector(0,0,0),
-                endPoint,
-                endPointNormal);
+  SimpleKDL.Frame endFrame = calcEndRotMat(new PVector(0,0,0),
+										   endPoint,
+										   endPointNormal);
   
-  SimpleKDL.Frame desiredFrame = new SimpleKDL.Frame(new SimpleKDL.Rotation(new SimpleKDL.Vector(endPointRotX.x,endPointRotX.y,endPointRotX.z),
-                                                                            new SimpleKDL.Vector(endPointRotY.x,endPointRotY.y,endPointRotY.z),
-                                                                            new SimpleKDL.Vector(endPointRotZ.x,endPointRotZ.y,endPointRotZ.z)),
-                                                     new SimpleKDL.Vector(endPos.x, endPos.y, endPos.z));
   // calculate matrix for visualization                       
-  endPointMat = SimpleKDL.KinematicSolver.getMatrix(desiredFrame);
+  endPointMat = SimpleKDL.KinematicSolver.getMatrix(endFrame);
     
   // set the end position of the chain  
-  boolean ret = kinematicSolver.solveIk(desiredFrame);  
+  boolean ret = kinematicSolver.solveIk(endFrame);  
   if(ret)
   {  // add to pickTrail
     pickTrail.add(endPoint.get());
