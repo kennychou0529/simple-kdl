@@ -2,4 +2,4 @@
 
 = Auto.Gen =
 
-[http://simple-dynamixel.googlecode.com/svn/trunk/dist/all/SimpleDynamixel/documentation/index.html Documentation]
+[http://simple-kdl.googlecode.com/svn/trunk/SimpleKDL/dist/all/SimpleKDL/documentation/index.html Documentation]
