@@ -12,7 +12,6 @@
  * ----------------------------------------------------------------------------
  */
 
-import processing.opengl.*;
 import javax.media.opengl.*;
 import javax.media.opengl.glu.*;
 
@@ -55,8 +54,7 @@ int pickTrailMax = 200;
 
 void setup() 
 {
-  hint(ENABLE_OPENGL_4X_SMOOTH);  // antialiasing is somehow buggy in processing ?!
-  smooth();
+  smooth(4);
   size(1280, 720, OPENGL);
 
   // setup cam
@@ -165,7 +163,7 @@ void draw()
                    1, -1, 0);
                    
   background(0);
-  
+
   //////////////////////////////////////////////
   // draw the chain
   kinematicSolver.draw(g);
